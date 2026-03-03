@@ -248,6 +248,28 @@ jobs:
 
       - run: npm ci
 
+      # Cache the MongoDB binary so the download only happens once across runs.
+      # Key is pinned to the version; bump it when upgrading mongodb-memory-server.
+      - name: Cache MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongodb-binaries-7.0.24
+
+      # Pre-download the binary in a single sequential process before Vitest
+      # starts its parallel workers. Without this, multiple workers race to
+      # download the same binary and contend on the lock file, causing
+      # UnableToUnlockLockfileError in whichever workers finish second.
+      - name: Pre-download MongoDB binary
+        working-directory: apps/api
+        run: |
+          node -e "
+            const { MongoMemoryServer } = require('mongodb-memory-server');
+            MongoMemoryServer.create()
+              .then(async s => { await s.stop(); console.log('MongoDB binary ready.'); })
+              .catch(e => { console.error(e); process.exit(1); });
+          "
+
       - name: Run API tests
         run: npx turbo test --filter=@wealthwise/api
 
