@@ -1,0 +1,104 @@
+# Shared AnalysisTemplate for WealthWise canary and blue-green rollouts.
+#
+# Prerequisites:
+#   - Prometheus is deployed in the cluster (e.g., kube-prometheus-stack)
+#   - Services expose metrics compatible with the queries below
+#   - If Prometheus is not available, replace the provider block with the
+#     "web" provider pointing to the service's health endpoint.
+#
+# Apply to all namespaces that run rollouts:
+#   kubectl apply -f analysis-template.yaml -n wealthwise-production
+#
+# Parameters:
+#   service-name  — Kubernetes service name to query metrics for
+#   namespace     — Kubernetes namespace (used in Prometheus label filters)
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: wealthwise-success-rate
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+spec:
+  args:
+    - name: service-name
+    - name: namespace
+      value: wealthwise-production
+
+  metrics:
+    # ── Metric 1: HTTP success rate ────────────────────────────────────────
+    # Fails the analysis if >5% of requests return 5xx over a 2-minute window.
+    # Measured 3 times at 2-minute intervals (6 minutes total per check).
+    - name: http-success-rate
+      interval: 2m
+      count: 3
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring.svc.cluster.local:9090
+          query: |
+            sum(
+              rate(
+                http_requests_total{
+                  kubernetes_service_name="{{args.service-name}}",
+                  kubernetes_namespace="{{args.namespace}}",
+                  status!~"5.."
+                }[2m]
+              )
+            )
+            /
+            sum(
+              rate(
+                http_requests_total{
+                  kubernetes_service_name="{{args.service-name}}",
+                  kubernetes_namespace="{{args.namespace}}"
+                }[2m]
+              )
+            )
+
+    # ── Metric 2: P99 request latency ──────────────────────────────────────
+    # Fails the analysis if p99 latency exceeds 1 second.
+    - name: p99-latency
+      interval: 2m
+      count: 3
+      successCondition: result[0] < 1.0
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(
+              0.99,
+              sum(
+                rate(
+                  http_request_duration_seconds_bucket{
+                    kubernetes_service_name="{{args.service-name}}",
+                    kubernetes_namespace="{{args.namespace}}"
+                  }[2m]
+                )
+              ) by (le)
+            )
+
+    # ── Metric 3: Error count (absolute guard) ─────────────────────────────
+    # Fails the analysis if more than 10 errors occur in the interval.
+    - name: error-count
+      interval: 2m
+      count: 3
+      successCondition: result[0] <= 10
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus-operated.monitoring.svc.cluster.local:9090
+          query: |
+            sum(
+              increase(
+                http_requests_total{
+                  kubernetes_service_name="{{args.service-name}}",
+                  kubernetes_namespace="{{args.namespace}}",
+                  status=~"5.."
+                }[2m]
+              )
+            )

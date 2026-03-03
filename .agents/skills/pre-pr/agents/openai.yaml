@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pre-PR Checklist"
+  short_description: "Run format, type-check, tests, build, audit, and branch safety checks before opening a PR"
+  brand_color: "#F59E0B"
+
+policy:
+  allow_implicit_invocation: false

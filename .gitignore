@@ -35,3 +35,10 @@ test-results/
 # Misc
 *.log
 npm-debug.log*
+
+# Claude Code — local-only settings (API keys, personal preferences)
+.claude/settings.local.json
+
+# Codex — local-only overrides (personal model preferences, user-specific config)
+# .codex/config.toml and .agents/ are committed (shared project config)
+.codex/config.local.toml

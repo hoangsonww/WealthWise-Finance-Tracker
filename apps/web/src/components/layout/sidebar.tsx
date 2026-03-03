@@ -32,7 +32,7 @@ export function Sidebar() {
       >
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-sidebar-border px-4">
-          <Link href="/dashboard" className="flex items-center gap-2.5 overflow-hidden">
+          <Link href="/" className="flex items-center gap-2.5 overflow-hidden">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Wallet className="h-5 w-5" />
             </div>

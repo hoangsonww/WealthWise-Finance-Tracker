@@ -1,0 +1,7 @@
+interface:
+  display_name: "DB Seed"
+  short_description: "Seed the WealthWise MongoDB database with categories or demo data"
+  brand_color: "#10B981"
+
+policy:
+  allow_implicit_invocation: false

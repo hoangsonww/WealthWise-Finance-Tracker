@@ -1,0 +1,98 @@
+# Argo CD AppProject — WealthWise
+#
+# Defines RBAC boundaries, allowed source repos, and allowed destination clusters/namespaces.
+# Apply once during cluster bootstrap:
+#   kubectl apply -f project.yaml -n argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: wealthwise
+  namespace: argocd
+  # Prevent accidental deletion via the Argo CD UI
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "WealthWise personal finance application — all environments"
+
+  # ── Allowed source repositories ────────────────────────────────────────────
+  sourceRepos:
+    - "https://github.com/hoangsonww/wealthwise.git"
+    # Helm stable chart repository (if Helm charts used as dependency)
+    - "https://charts.helm.sh/stable"
+
+  # ── Allowed destination clusters and namespaces ────────────────────────────
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: wealthwise-dev
+    - server: https://kubernetes.default.svc
+      namespace: wealthwise-staging
+    - server: https://kubernetes.default.svc
+      namespace: wealthwise-production
+    - server: https://kubernetes.default.svc
+      namespace: wealthwise               # base / catch-all
+
+  # ── Cluster-scoped resources the project is allowed to manage ─────────────
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: "networking.k8s.io"
+      kind: IngressClass
+
+  # ── Namespace-scoped resources allowed within the project ─────────────────
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+
+  # ── Namespace-scoped resources explicitly denied ───────────────────────────
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota      # managed by platform team, not apps
+    - group: ""
+      kind: LimitRange
+
+  # ── Sync windows — restrict when automated sync can run ───────────────────
+  syncWindows:
+    # Allow automated sync for dev at any time
+    - kind: allow
+      schedule: "* * * * *"
+      duration: 24h
+      applications:
+        - "wealthwise-dev"
+      manualSync: true
+
+    # Restrict production automated sync to business hours UTC Mon-Fri
+    - kind: allow
+      schedule: "0 6 * * 1-5"
+      duration: 10h
+      applications:
+        - "wealthwise-production"
+      manualSync: true          # manual sync is always allowed outside the window
+
+  # ── RBAC roles ─────────────────────────────────────────────────────────────
+  roles:
+    # Developers: read-only on all apps, can sync dev only
+    - name: developer
+      description: "Read all apps; sync dev environment"
+      policies:
+        - p, proj:wealthwise:developer, applications, get,    wealthwise/*, allow
+        - p, proj:wealthwise:developer, applications, sync,   wealthwise/wealthwise-dev, allow
+        - p, proj:wealthwise:developer, applications, action, wealthwise/wealthwise-dev, allow
+      groups:
+        - wealthwise-developers
+
+    # Release engineers: full sync on staging + production
+    - name: release-engineer
+      description: "Full control over staging and production"
+      policies:
+        - p, proj:wealthwise:release-engineer, applications, *, wealthwise/*, allow
+      groups:
+        - wealthwise-release
+
+    # CI/CD service account: sync all apps (used by GitHub Actions / Jenkins)
+    - name: ci-deployer
+      description: "Automated deployment from CI pipelines"
+      policies:
+        - p, proj:wealthwise:ci-deployer, applications, sync,   wealthwise/*, allow
+        - p, proj:wealthwise:ci-deployer, applications, get,    wealthwise/*, allow
+        - p, proj:wealthwise:ci-deployer, applications, action, wealthwise/*, allow

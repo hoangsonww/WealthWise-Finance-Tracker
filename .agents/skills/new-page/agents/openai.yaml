@@ -1,0 +1,8 @@
+interface:
+  display_name: "New Dashboard Page"
+  short_description: "Scaffold a complete Next.js dashboard page (hooks → components → page → sidebar)"
+  brand_color: "#8B5CF6"
+  default_prompt: "Scaffold a new dashboard page for the feature: "
+
+policy:
+  allow_implicit_invocation: true

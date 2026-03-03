@@ -1,0 +1,194 @@
+# WealthWise — Codex command rules
+# Starlark syntax. Loaded at Codex startup.
+# Controls which commands run without prompting vs. require approval vs. are blocked.
+#
+# When Codex adds an allow rule during an interactive session, it appends to this file.
+# Review new entries here before committing them.
+
+# ── Development — always allow ───────────────────────────────────────────────
+
+# npm run <script> — allow all project scripts (dev, build, test, lint, format, etc.)
+prefix_rule(
+    pattern    = ["npm", "run"],
+    decision   = "allow",
+    justification = "All project npm scripts are safe dev operations.",
+    match      = ["npm run test", "npm run build", "npm run lint", "npm run dev", "npm run format"],
+    not_match  = [],
+)
+
+# npx turbo — allow all Turbo task invocations
+prefix_rule(
+    pattern    = ["npx", "turbo"],
+    decision   = "allow",
+    justification = "Turbo pipeline commands are safe build/test operations.",
+    match      = ["npx turbo test --filter=@wealthwise/api", "npx turbo build"],
+)
+
+# npx tsc — type-checking
+prefix_rule(
+    pattern    = ["npx", "tsc"],
+    decision   = "allow",
+    justification = "TypeScript type-checking is read-only.",
+)
+
+# npx prettier — formatting
+prefix_rule(
+    pattern    = ["npx", "prettier"],
+    decision   = "allow",
+    justification = "Prettier formatting is safe.",
+)
+
+# npm install (no new packages without prompt — see blocked rule below for bare `npm install <pkg>`)
+prefix_rule(
+    pattern    = ["npm", "install"],
+    decision   = "prompt",
+    justification = "Installing packages changes lockfile and may introduce vulnerabilities.",
+    match      = ["npm install", "npm install express", "npm install --save-dev vitest"],
+)
+
+# npm ci — allow (exact lockfile install, no resolution)
+prefix_rule(
+    pattern    = ["npm", "ci"],
+    decision   = "allow",
+    justification = "npm ci is deterministic and safe for CI environments.",
+)
+
+# docker compose — allow read operations, prompt for start/stop
+prefix_rule(
+    pattern    = ["docker", "compose", "ps"],
+    decision   = "allow",
+    justification = "Read-only Docker status check.",
+)
+
+prefix_rule(
+    pattern    = ["docker", "compose", "logs"],
+    decision   = "allow",
+    justification = "Read-only log tailing.",
+)
+
+prefix_rule(
+    pattern    = ["docker", "compose", ["up", "down", "restart", "build"]],
+    decision   = "prompt",
+    justification = "Starting/stopping containers affects the running dev environment.",
+    match      = ["docker compose up --build -d", "docker compose down"],
+)
+
+# curl to localhost — allow for health checks
+prefix_rule(
+    pattern    = ["curl", "-sf"],
+    decision   = "allow",
+    justification = "Health check reads against localhost.",
+)
+
+# ── Git — read operations always allowed ─────────────────────────────────────
+
+prefix_rule(
+    pattern    = ["git", ["status", "log", "diff", "show", "branch", "remote", "fetch", "stash"]],
+    decision   = "allow",
+    justification = "Read-only git operations.",
+    match      = ["git status", "git log --oneline -10", "git diff HEAD"],
+)
+
+prefix_rule(
+    pattern    = ["git", "add"],
+    decision   = "allow",
+    justification = "Staging files is safe and reversible.",
+)
+
+prefix_rule(
+    pattern    = ["git", "commit"],
+    decision   = "prompt",
+    justification = "Commits should be reviewed before they are recorded.",
+    match      = ["git commit -m \"fix: correct validation\""],
+)
+
+prefix_rule(
+    pattern    = ["git", "checkout"],
+    decision   = "prompt",
+    justification = "Switching branches or discarding changes requires review.",
+    match      = ["git checkout feature/my-branch"],
+)
+
+prefix_rule(
+    pattern    = ["git", "merge"],
+    decision   = "prompt",
+    justification = "Merges require explicit approval.",
+)
+
+prefix_rule(
+    pattern    = ["git", "rebase"],
+    decision   = "prompt",
+    justification = "Rebases rewrite history and require explicit approval.",
+)
+
+# ── Git — dangerous operations require explicit prompt ────────────────────────
+
+prefix_rule(
+    pattern    = ["git", "push"],
+    decision   = "prompt",
+    justification = "Pushing to remote is visible to others and may be hard to reverse.",
+    match      = ["git push origin feature/my-branch"],
+)
+
+prefix_rule(
+    pattern    = ["git", "reset"],
+    decision   = "prompt",
+    justification = "git reset can discard work. Always confirm the target ref.",
+    match      = ["git reset HEAD~1", "git reset --soft HEAD~1"],
+)
+
+# ── Git — blocked operations ──────────────────────────────────────────────────
+
+# Direct push to main/master is always blocked
+prefix_rule(
+    pattern    = ["git", "push", ["origin", "upstream"], ["main", "master"]],
+    decision   = "forbidden",
+    justification = "Direct pushes to main/master are not allowed. Open a PR instead.",
+    match      = ["git push origin main", "git push upstream master"],
+)
+
+# Force push is blocked globally — too destructive
+prefix_rule(
+    pattern    = ["git", "push", "--force"],
+    decision   = "forbidden",
+    justification = "Force push can permanently overwrite remote history. Use --force-with-lease only via explicit human command.",
+)
+
+prefix_rule(
+    pattern    = ["git", "push", "-f"],
+    decision   = "forbidden",
+    justification = "Force push is blocked. Use --force-with-lease only via explicit human command.",
+)
+
+# Hard reset is blocked — use soft or mixed instead
+prefix_rule(
+    pattern    = ["git", "reset", "--hard"],
+    decision   = "prompt",
+    justification = "Hard reset discards all working tree changes irreversibly. Confirm target ref carefully.",
+    match      = ["git reset --hard HEAD", "git reset --hard origin/main"],
+)
+
+# Clean is blocked — would delete untracked files
+prefix_rule(
+    pattern    = ["git", "clean"],
+    decision   = "prompt",
+    justification = "git clean deletes untracked files. Requires explicit confirmation.",
+)
+
+# ── File system — guard against mass deletions ────────────────────────────────
+
+prefix_rule(
+    pattern    = ["rm", "-rf"],
+    decision   = "prompt",
+    justification = "Recursive force removal is irreversible. Confirm the path before proceeding.",
+    match      = ["rm -rf .next", "rm -rf dist"],
+    not_match  = [],
+)
+
+# ── npm audit — allow (read-only security check) ─────────────────────────────
+
+prefix_rule(
+    pattern    = ["npm", "audit"],
+    decision   = "allow",
+    justification = "Security audit is read-only.",
+)

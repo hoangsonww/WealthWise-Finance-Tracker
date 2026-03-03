@@ -184,3 +184,36 @@ See `.env.example` for all required variables. Key ones:
 - **API error shape**: Zod validation errors return `details` as `Record<string, string[]>` (field → messages map), not an array.
 - **Vitest in API**: Uses 30-second timeout due to mongodb-memory-server startup. Don't reduce it.
 - **Web vitest config**: Does not use `@vitejs/plugin-react` - it causes ESM errors. jsdom environment is sufficient for utility tests.
+
+---
+
+## Claude Code Skills
+
+Project-specific slash commands in `.claude/skills/`:
+
+| Skill | Description |
+|-------|-------------|
+| `/api-endpoint` | Scaffold a complete new API endpoint (schema → model → service → controller → route) |
+| `/new-page` | Scaffold a new Next.js dashboard page (page → hooks → components → sidebar link) |
+| `/new-model` | Scaffold a Mongoose model + CRUD service (data layer only) |
+| `/db-seed` | Seed the database — pass `demo` for full demo data |
+| `/test-coverage` | Run tests with coverage — pass `api`, `web`, or `types` to filter |
+| `/pre-pr` | Full pre-PR checklist: format → types → tests → build → audit → branch check |
+| `/docker-up` | Start/stop the Docker development environment |
+| `/health-check` | Verify the running API, web, and MongoDB are healthy |
+
+## Claude Code Agents
+
+Project-specific subagents in `.claude/agents/`:
+
+| Agent | Use for |
+|-------|---------|
+| `api-developer` | All work in `apps/api/` — endpoints, services, models, middleware |
+| `web-developer` | All work in `apps/web/` — pages, components, hooks, forms |
+| `schema-author` | All work in `packages/shared-types/` — Zod schemas and inferred types |
+
+## Hooks
+
+`.claude/settings.json` configures two hooks:
+- **PostToolUse (Write\|Edit)**: Auto-formats the saved file with Prettier
+- **PreToolUse (Bash)**: Warns when destructive git operations are detected (`--force`, `reset --hard`, `clean -f`, `branch -D`)

@@ -1,0 +1,8 @@
+interface:
+  display_name: "API Endpoint Scaffold"
+  short_description: "Scaffold a complete WealthWise API endpoint (schema → model → service → controller → route)"
+  brand_color: "#3B82F6"
+  default_prompt: "Scaffold a new API endpoint for the entity: "
+
+policy:
+  allow_implicit_invocation: true

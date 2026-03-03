@@ -1,0 +1,58 @@
+# Active and preview services for the WealthWise Web blue-green rollout.
+#
+# In a blue-green deployment:
+#   active  → stable, receives 100% of production traffic at all times
+#   preview → new version, receives no traffic until manually/auto promoted
+#
+# The Ingress should point to `wealthwise-web-active`.
+# Engineers can preview the new version via `wealthwise-web-preview` before promotion.
+#
+# Apply before the Rollout resource:
+#   kubectl apply -f web-services.yaml -n wealthwise-production
+---
+# Active (blue) service — receives 100% production traffic.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wealthwise-web-active
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/name: wealthwise-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+    wealthwise.io/service-type: active
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: wealthwise-web
+
+---
+# Preview (green) service — new version, zero production traffic.
+# Use this for smoke-testing before promotion:
+#   kubectl port-forward svc/wealthwise-web-preview 8080:3000 -n wealthwise-production
+apiVersion: v1
+kind: Service
+metadata:
+  name: wealthwise-web-preview
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/name: wealthwise-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+    wealthwise.io/service-type: preview
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: wealthwise-web

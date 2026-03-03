@@ -1,0 +1,331 @@
+# Copyright (c) 2026 Son Nguyen
+# GitLab CI/CD Pipeline for WealthWise
+#
+# Pipeline stages:
+#   preflight → check → test → build → docker → deploy
+#
+# Docker images are pushed to the GitLab Container Registry ($CI_REGISTRY).
+# Docker push and deploy stages only run on the default branch (main/master).
+# All test jobs use Vitest with mongodb-memory-server — no external services required.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Global defaults
+# ──────────────────────────────────────────────────────────────────────────────
+default:
+  image: node:20-alpine
+  tags:
+    - docker          # Requires a Docker-capable GitLab Runner
+  interruptible: true
+
+variables:
+  TURBO_DAEMON: "false"
+  NEXT_TELEMETRY_DISABLED: "1"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  TURBO_CACHE_DIR: "$CI_PROJECT_DIR/.turbo"
+
+  # GitLab Container Registry image names
+  API_IMAGE: "$CI_REGISTRY_IMAGE/api"
+  WEB_IMAGE: "$CI_REGISTRY_IMAGE/web"
+
+  # Docker-in-Docker settings
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: "1"
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
+  # CI-only Next.js build-time env vars (real values injected at runtime via K8s secrets)
+  NEXTAUTH_URL: "http://localhost:3000"
+  NEXTAUTH_SECRET: "ci-placeholder-not-a-real-secret-do-not-use"
+  NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v1"
+
+stages:
+  - preflight
+  - check
+  - test
+  - build
+  - docker
+  - deploy
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cache template — shared across all Node.js jobs
+# ──────────────────────────────────────────────────────────────────────────────
+.npm-cache: &npm-cache
+  cache:
+    key:
+      files:
+        - package-lock.json
+      prefix: "$CI_JOB_IMAGE"
+    paths:
+      - .npm/
+      - .turbo/
+    policy: pull-push
+
+.npm-cache-pull: &npm-cache-pull
+  cache:
+    key:
+      files:
+        - package-lock.json
+      prefix: "$CI_JOB_IMAGE"
+    paths:
+      - .npm/
+      - .turbo/
+    policy: pull
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Reusable install snippet
+# ──────────────────────────────────────────────────────────────────────────────
+.install: &install
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rules — default branch only (for Docker push / deploy)
+# ──────────────────────────────────────────────────────────────────────────────
+.rules-main: &rules-main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
+    - when: never
+
+.rules-always: &rules-always
+  rules:
+    - when: on_success
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ⚙️ STAGE: preflight
+# ──────────────────────────────────────────────────────────────────────────────
+preflight:
+  stage: preflight
+  <<: *rules-always
+  script:
+    - echo "╔══════════════════════════════════════╗"
+    - echo "║     WealthWise GitLab CI/CD          ║"
+    - echo "╚══════════════════════════════════════╝"
+    - echo "Branch  → $CI_COMMIT_BRANCH"
+    - echo "SHA     → $CI_COMMIT_SHORT_SHA"
+    - echo "Pipeline→ $CI_PIPELINE_ID"
+    - echo "Node    → $(node -v)"
+    - echo "npm     → $(npm -v)"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🔍 STAGE: check — format, type check, security (all parallel)
+# ──────────────────────────────────────────────────────────────────────────────
+format-check:
+  stage: check
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [preflight]
+  script:
+    - npm run format:check
+
+type-check:
+  stage: check
+  <<: [*npm-cache, *install, *rules-always]
+  needs: [preflight]
+  script:
+    - npm run lint
+
+security-audit:
+  stage: check
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [preflight]
+  allow_failure: true
+  script:
+    - npm audit --audit-level=high || true
+    - npx license-checker --production --excludePrivatePackages --summary || true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🧪 STAGE: test — three packages in parallel
+#   API tests use mongodb-memory-server (no external service required)
+# ──────────────────────────────────────────────────────────────────────────────
+test-shared-types:
+  stage: test
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [format-check, type-check]
+  script:
+    - npx turbo test --filter=@wealthwise/shared-types
+  coverage: '/Statements\s*:\s*([\d.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: packages/shared-types/test-results/**/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: packages/shared-types/coverage/cobertura-coverage.xml
+    paths:
+      - packages/shared-types/coverage/
+    expire_in: 7 days
+
+test-api:
+  stage: test
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [format-check, type-check]
+  timeout: 10 minutes        # mongodb-memory-server cold-start buffer
+  script:
+    - npx turbo test --filter=@wealthwise/api
+  coverage: '/Statements\s*:\s*([\d.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: apps/api/test-results/**/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: apps/api/coverage/cobertura-coverage.xml
+    paths:
+      - apps/api/coverage/
+    expire_in: 7 days
+
+test-web:
+  stage: test
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [format-check, type-check]
+  script:
+    - npx turbo test --filter=@wealthwise/web
+  coverage: '/Statements\s*:\s*([\d.]+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: apps/web/test-results/**/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: apps/web/coverage/cobertura-coverage.xml
+    paths:
+      - apps/web/coverage/
+    expire_in: 7 days
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🏗️ STAGE: build — compile API + Next.js (parallel)
+#   Turbo handles shared-types dependency automatically via dependsOn: ["^build"]
+# ──────────────────────────────────────────────────────────────────────────────
+build-api:
+  stage: build
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [test-api, test-shared-types]
+  script:
+    - npx turbo build --filter=@wealthwise/api...
+  artifacts:
+    paths:
+      - apps/api/dist/
+      - packages/shared-types/dist/
+    expire_in: 1 day
+
+build-web:
+  stage: build
+  <<: [*npm-cache-pull, *install, *rules-always]
+  needs: [test-web, test-shared-types]
+  script:
+    - npx turbo build --filter=@wealthwise/web...
+  artifacts:
+    paths:
+      - apps/web/.next/
+      - apps/web/public/
+      - packages/shared-types/dist/
+    expire_in: 1 day
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🐳 STAGE: docker — build and push to GitLab Container Registry
+#   Uses Docker-in-Docker (dind). Requires privileged runner.
+#   Alternative: replace with kaniko (no privileged mode required):
+#     image:
+#       name: gcr.io/kaniko-project/executor:v1.23.2-debug
+#       entrypoint: [""]
+#     script:
+#       - /kaniko/executor --context . --dockerfile apps/api/Dockerfile.prod
+#           --destination $API_IMAGE:$CI_COMMIT_SHORT_SHA
+# ──────────────────────────────────────────────────────────────────────────────
+.docker-job: &docker-job
+  image: docker:24-cli
+  services:
+    - name: docker:24-dind
+      alias: docker
+  before_script:
+    - docker info
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+    - docker buildx create --use --name ww-builder
+        --driver docker-container
+        --driver-opt network=host 2>/dev/null || docker buildx use ww-builder
+  after_script:
+    - docker logout "$CI_REGISTRY" || true
+
+docker-api:
+  stage: docker
+  <<: [*docker-job, *rules-main]
+  needs: [build-api]
+  script:
+    - |
+      docker buildx build \
+        --platform linux/amd64,linux/arm64 \
+        --file apps/api/Dockerfile.prod \
+        --tag "$API_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        --tag "$API_IMAGE:latest" \
+        --cache-from "type=registry,ref=$API_IMAGE:buildcache" \
+        --cache-to  "type=registry,ref=$API_IMAGE:buildcache,mode=max" \
+        --push \
+        .
+    - echo "✅ Pushed $API_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+docker-web:
+  stage: docker
+  <<: [*docker-job, *rules-main]
+  needs: [build-web]
+  script:
+    - |
+      docker buildx build \
+        --platform linux/amd64,linux/arm64 \
+        --file apps/web/Dockerfile.prod \
+        --tag "$WEB_IMAGE:$CI_COMMIT_SHORT_SHA" \
+        --tag "$WEB_IMAGE:latest" \
+        --cache-from "type=registry,ref=$WEB_IMAGE:buildcache" \
+        --cache-to  "type=registry,ref=$WEB_IMAGE:buildcache,mode=max" \
+        --push \
+        .
+    - echo "✅ Pushed $WEB_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 🚀 STAGE: deploy
+#   Staging deploys automatically on push to main.
+#   Production requires manual approval (when: manual).
+#   Both jobs use KUBECONFIG injected as a GitLab CI/CD file variable.
+# ──────────────────────────────────────────────────────────────────────────────
+deploy-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  <<: *rules-main
+  needs: [docker-api, docker-web]
+  environment:
+    name: staging
+    url: https://staging.wealthwise.app
+  script:
+    - kubectl config use-context staging  # or set via KUBECONFIG file variable
+    - |
+      kubectl set image deployment/wealthwise-api \
+        api=$API_IMAGE:$CI_COMMIT_SHORT_SHA \
+        -n wealthwise-staging
+      kubectl set image deployment/wealthwise-web \
+        web=$WEB_IMAGE:$CI_COMMIT_SHORT_SHA \
+        -n wealthwise-staging
+      kubectl rollout status deployment/wealthwise-api -n wealthwise-staging --timeout=5m
+      kubectl rollout status deployment/wealthwise-web -n wealthwise-staging --timeout=5m
+    - echo "✅ Staging deployed → $CI_ENVIRONMENT_URL"
+
+deploy-production:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  <<: *rules-main
+  needs: [deploy-staging]
+  when: manual                # Requires explicit click in GitLab UI
+  allow_failure: false
+  environment:
+    name: production
+    url: https://wealthwise.app
+  script:
+    - kubectl config use-context production
+    - |
+      kubectl set image deployment/wealthwise-api \
+        api=$API_IMAGE:$CI_COMMIT_SHORT_SHA \
+        -n wealthwise-production
+      kubectl set image deployment/wealthwise-web \
+        web=$WEB_IMAGE:$CI_COMMIT_SHORT_SHA \
+        -n wealthwise-production
+      kubectl rollout status deployment/wealthwise-api -n wealthwise-production --timeout=10m
+      kubectl rollout status deployment/wealthwise-web -n wealthwise-production --timeout=10m
+    - echo "✅ Production deployed → $CI_ENVIRONMENT_URL"

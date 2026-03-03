@@ -1,0 +1,58 @@
+# WealthWise — Codex project configuration
+# Committed to the repository so all developers share the same agent setup.
+# Personal overrides go in ~/.codex/config.toml (gitignored).
+
+# ── Multi-agent settings ────────────────────────────────────────────────────
+[agents]
+max_threads = 8        # Up to 8 concurrent agent threads (typical PR review team + parallel work)
+max_depth   = 2        # Allow grandchild agents (orchestrator → worker → sub-worker)
+
+# Per-worker timeout for spawn_agents_on_csv jobs (30 min default)
+job_max_runtime_seconds = 1800
+
+# ── Built-in role overrides ─────────────────────────────────────────────────
+
+[agents.explorer]
+description = """
+Read-only codebase explorer. Use when you need to map files, trace execution paths,
+understand existing patterns, or gather evidence before proposing changes.
+Does NOT write files or run mutating commands.
+"""
+config_file = "agents/explorer.toml"
+
+[agents.worker]
+description = """
+Implementation-focused agent for targeted fixes, small features, and changes
+where the approach is already understood. Owns the change from edit to test.
+Keeps unrelated files untouched.
+"""
+config_file = "agents/worker.toml"
+
+# ── Project-specific roles ───────────────────────────────────────────────────
+
+[agents.api-developer]
+description = """
+Expert in the WealthWise Express API layer (apps/api/).
+Use for creating endpoints, writing services, fixing API bugs, or reviewing API code.
+Knows all ApiError factories, asyncHandler, userId filtering, and Mongoose patterns.
+Do NOT use for frontend work.
+"""
+config_file = "agents/api-developer.toml"
+
+[agents.web-developer]
+description = """
+Expert in the WealthWise Next.js 14 frontend (apps/web/).
+Use for building pages, components, hooks, and forms, or fixing frontend bugs.
+Knows TanStack Query v5, apiClient, shadcn/ui, Sonner, and Next.js App Router quirks.
+Do NOT use for API or schema work.
+"""
+config_file = "agents/web-developer.toml"
+
+[agents.schema-author]
+description = """
+Expert in the WealthWise shared type system (packages/shared-types/).
+Use for adding Zod schemas, updating types, and ensuring consumers stay in sync.
+Knows the Create/Update/Response schema pattern and z.infer<> type inference.
+Do NOT use for API implementation or frontend UI work.
+"""
+config_file = "agents/schema-author.toml"

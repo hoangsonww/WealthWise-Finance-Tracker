@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'f=\"$CLAUDE_TOOL_INPUT_FILE_PATH\"; case \"$f\" in *.ts|*.tsx|*.js|*.jsx|*.json|*.css|*.md) [ -f \"$f\" ] && npx prettier --write \"$f\" 2>/dev/null || true ;; esac'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'cmd=\"$CLAUDE_TOOL_INPUT_COMMAND\"; case \"$cmd\" in *\"--force\"*|*\"reset --hard\"*|*\"clean -f\"*|*\"branch -D\"*|*\"checkout --\"*) printf \"\\n[WealthWise] WARNING: Destructive git operation detected:\\n  %s\\nVerify this is intentional before proceeding.\\n\" \"$cmd\" >&2 ;; esac; exit 0'"
+          }
+        ]
+      }
+    ]
+  }
+}

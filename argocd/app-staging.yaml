@@ -1,0 +1,82 @@
+# Argo CD Application — WealthWise Staging
+#
+# Sources:   k8s/overlays/staging  (Kustomize)
+# Target:    wealthwise-staging namespace, in-cluster
+# Sync:      Automated with prune + self-heal.
+#            Image tags are pinned to the exact SHA from CI (not :latest).
+#
+# To update the image after a CI push:
+#   argocd app set wealthwise-staging \
+#     --kustomize-image ghcr.io/hoangsonww/wealthwise-api:<sha> \
+#     --kustomize-image ghcr.io/hoangsonww/wealthwise-web:<sha>
+#
+# Apply:
+#   kubectl apply -f app-staging.yaml -n argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wealthwise-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: wealthwise
+    app.kubernetes.io/component: gitops
+    environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: wealthwise-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: wealthwise-alerts
+    notifications.argoproj.io/subscribe.on-deployed.slack: wealthwise-releases
+spec:
+  project: wealthwise
+
+  # ── Source ─────────────────────────────────────────────────────────────────
+  source:
+    repoURL: https://github.com/hoangsonww/wealthwise.git
+    targetRevision: HEAD
+    path: k8s/overlays/staging
+    kustomize:
+      # Image tags are updated by CI using `argocd app set` or a Git commit
+      # that edits the kustomization.yaml image override.
+      images:
+        - ghcr.io/hoangsonww/wealthwise-api:latest
+        - ghcr.io/hoangsonww/wealthwise-web:latest
+
+  # ── Destination ────────────────────────────────────────────────────────────
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wealthwise-staging
+
+  # ── Sync policy ────────────────────────────────────────────────────────────
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+
+  # ── Health and diff overrides ──────────────────────────────────────────────
+  ignoreDifferences:
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /spec/minReplicas
+        - /spec/maxReplicas
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations
+
+  revisionHistoryLimit: 10

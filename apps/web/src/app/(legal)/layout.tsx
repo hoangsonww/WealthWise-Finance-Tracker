@@ -41,35 +41,21 @@ function LegalNav() {
             <span className="text-lg font-bold tracking-tight">WealthWise</span>
           </Link>
 
-          {/* Desktop nav links */}
-          <div className="hidden items-center gap-1 sm:flex">
-            {APP_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile hamburger */}
+          {/* Hamburger menu */}
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Toggle navigation"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Mobile dropdown */}
+        {/* Dropdown */}
         {open && (
-          <div className="border-t border-border pb-3 pt-2 sm:hidden">
-            <div className="grid grid-cols-2 gap-1">
+          <div className="border-t border-border pb-3 pt-2">
+            <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
               {APP_NAV.map((item) => (
                 <Link
                   key={item.href}
@@ -105,13 +91,22 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
               &copy; {new Date().getFullYear()} WealthWise. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-muted-foreground">
-              <Link href="/terms" className="transition-colors hover:text-foreground">
+              <Link
+                href="/terms"
+                className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+              >
                 Terms
               </Link>
-              <Link href="/privacy" className="transition-colors hover:text-foreground">
+              <Link
+                href="/privacy"
+                className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+              >
                 Privacy
               </Link>
-              <Link href="/" className="transition-colors hover:text-foreground">
+              <Link
+                href="/"
+                className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+              >
                 Home
               </Link>
             </div>

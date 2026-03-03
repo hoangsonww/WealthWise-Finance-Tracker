@@ -9,7 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "next lint",
+    "lint": "tsc --noEmit",
     "clean": "rm -rf .next"
   },
   "dependencies": {

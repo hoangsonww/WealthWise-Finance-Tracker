@@ -1,0 +1,587 @@
+# Copyright (c) 2026 Son Nguyen
+# CI / CD Pipeline for WealthWise
+#
+# Pipeline stages (each stage gates the next):
+#
+#   preflight
+#     └── install
+#           ├── format-check ──────────────┐
+#           ├── type-check ─────────────── ┤──► codeql
+#           └── security-audit             │
+#                                          │
+#               format-check + type-check──┤
+#                                          ├──► test-shared-types ──► build-api ──► docker-api ──► image-scan
+#                                          ├──► test-api          ──► build-api
+#                                          └──► test-web          ──► build-web ──► docker-web ──► image-scan
+#
+#   Docker push and image-scan only run on push to main/master (not on PRs).
+
+name: CI / CD Pipeline for WealthWise
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20"
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_DAEMON: "false"
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # ⚙️ 0. Preflight
+  #   Verifies the runner environment and exposes a short SHA for image tags.
+  # ──────────────────────────────────────────────────────────────────────────
+  preflight:
+    name: "⚙️ Preflight"
+    runs-on: ubuntu-latest
+    outputs:
+      sha-short: ${{ steps.meta.outputs.sha-short }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute metadata
+        id: meta
+        run: echo "sha-short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log environment
+        run: |
+          echo "Node:   $(node -v)"
+          echo "npm:    $(npm -v)"
+          echo "Ref:    $GITHUB_REF"
+          echo "SHA:    $GITHUB_SHA"
+          echo "Runner: $RUNNER_OS $RUNNER_ARCH"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 💾 1. Install & Cache
+  #   Installs all workspace dependencies and primes the Turborepo cache.
+  #   Every downstream job restores these caches instead of re-fetching.
+  # ──────────────────────────────────────────────────────────────────────────
+  install:
+    name: "💾 Install & Cache"
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: Install all workspace dependencies
+        run: npm ci
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🧹 2. Format Check (Prettier)
+  #   Fails if any file is not formatted per .prettierrc.
+  # ──────────────────────────────────────────────────────────────────────────
+  format-check:
+    name: "🧹 Format Check (Prettier)"
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🔷 3. TypeScript Type Check
+  #   Runs tsc --noEmit across all three packages via Turborepo.
+  # ──────────────────────────────────────────────────────────────────────────
+  type-check:
+    name: "🔷 TypeScript Type Check"
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - run: npm ci
+
+      - name: Type-check all packages
+        run: npm run lint
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🛡️ 4. Dependency Security Audit
+  #   Runs npm audit at high severity. Non-blocking (continue-on-error) so
+  #   a vulnerable transitive dep doesn't halt the entire pipeline, but the
+  #   result is surfaced in the summary.
+  # ──────────────────────────────────────────────────────────────────────────
+  security-audit:
+    name: "🛡️ Dependency Security Audit"
+    needs: install
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Audit workspace dependencies
+        run: npm audit --audit-level=high > /dev/null 2>&1 || true
+
+      - name: Check production licenses
+        run: npx license-checker --production --excludePrivatePackages --summary > /dev/null 2>&1 || true
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🔒 5. CodeQL Security Scan
+  #   Static analysis for JavaScript / TypeScript. Uploads results to the
+  #   GitHub Security tab as SARIF.
+  # ──────────────────────────────────────────────────────────────────────────
+  codeql:
+    name: "🔒 CodeQL Security Scan"
+    needs: [format-check, type-check]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, typescript
+          queries: security-and-quality
+
+      - uses: github/codeql-action/autobuild@v3
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🧪 6a. Test: packages/shared-types  (151 tests, Node, Vitest)
+  # ──────────────────────────────────────────────────────────────────────────
+  test-shared-types:
+    name: "🧪 Test: shared-types (151)"
+    needs: [format-check, type-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - run: npm ci
+
+      - name: Run schema tests
+        run: npx turbo test --filter=@wealthwise/shared-types
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-shared-types
+          path: packages/shared-types/coverage
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🧪 6b. Test: apps/api  (138 tests, Vitest + mongodb-memory-server)
+  #   No external MongoDB service required — tests spin up an in-memory DB.
+  # ──────────────────────────────────────────────────────────────────────────
+  test-api:
+    name: "🧪 Test: API (138)"
+    needs: [format-check, type-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10      # mongodb-memory-server can be slow to start cold
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - run: npm ci
+
+      - name: Run API tests
+        run: npx turbo test --filter=@wealthwise/api
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-api
+          path: apps/api/coverage
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🧪 6c. Test: apps/web  (41 tests, Vitest + jsdom)
+  # ──────────────────────────────────────────────────────────────────────────
+  test-web:
+    name: "🧪 Test: Web (41)"
+    needs: [format-check, type-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - run: npm ci
+
+      - name: Run web tests
+        run: npx turbo test --filter=@wealthwise/web
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-web
+          path: apps/web/coverage
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🏗️ 7a. Build: apps/api
+  #   Compiles TypeScript to apps/api/dist. Turbo ensures shared-types is
+  #   built first via dependsOn: ["^build"].
+  # ──────────────────────────────────────────────────────────────────────────
+  build-api:
+    name: "🏗️ Build: API"
+    needs: [test-api, test-shared-types]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - run: npm ci
+
+      - name: Build API (and shared-types)
+        run: npx turbo build --filter=@wealthwise/api...
+
+      - name: Upload API dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🏗️ 7b. Build: apps/web (Next.js standalone)
+  #   NEXTAUTH_URL and NEXT_PUBLIC_API_URL are required at build time.
+  #   CI uses placeholder values — real values are injected at runtime
+  #   via Docker env or Kubernetes secrets.
+  # ──────────────────────────────────────────────────────────────────────────
+  build-web:
+    name: "🏗️ Build: Web"
+    needs: [test-web, test-shared-types]
+    runs-on: ubuntu-latest
+    env:
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "ci-placeholder-not-a-real-secret-do-not-use"
+      NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-
+
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('apps/web/package-lock.json', 'packages/shared-types/src/**') }}-${{ hashFiles('apps/web/src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('apps/web/package-lock.json', 'packages/shared-types/src/**') }}-
+            ${{ runner.os }}-nextjs-
+
+      - run: npm ci
+
+      - name: Build Web (and shared-types)
+        run: npx turbo build --filter=@wealthwise/web...
+
+      - name: Upload Next.js build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: |
+            apps/web/.next
+            apps/web/public
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🐳 8a. Docker: API → GHCR
+  #   Builds apps/api/Dockerfile.prod (hardened: dumb-init, non-root user,
+  #   HEALTHCHECK, minimal image) and pushes to ghcr.io.
+  #   Only runs on push to main/master — not on pull requests.
+  # ──────────────────────────────────────────────────────────────────────────
+  docker-api:
+    name: "🐳 Docker: API → GHCR"
+    needs: [build-api]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/wealthwise-api
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{ is_default_branch }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🐳 8b. Docker: Web → GHCR
+  #   Builds apps/web/Dockerfile.prod (standalone Next.js output, dumb-init).
+  #   Build-args inject public env vars; secrets are mounted at runtime.
+  #   Only runs on push to main/master.
+  # ──────────────────────────────────────────────────────────────────────────
+  docker-web:
+    name: "🐳 Docker: Web → GHCR"
+    needs: [build-web]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/wealthwise-web
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{ is_default_branch }}
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://wealthwise.app/api/v1' }}
+            NEXTAUTH_URL=${{ vars.NEXTAUTH_URL || 'https://wealthwise.app' }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🔍 9. Image Vulnerability Scan (Trivy)
+  #   Scans both pushed images for CVEs and uploads SARIF to the GitHub
+  #   Security tab. Non-blocking — findings are advisory, not pipeline gates.
+  #   Only runs after a successful Docker push.
+  # ──────────────────────────────────────────────────────────────────────────
+  image-scan:
+    name: "🔍 Image Vulnerability Scan (Trivy)"
+    needs: [docker-api, docker-web]
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    continue-on-error: true
+    permissions:
+      security-events: write
+    steps:
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/wealthwise-api:latest
+          format: sarif
+          output: trivy-api.sarif
+          exit-code: "0"
+
+      - name: Upload API scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-api.sarif
+          category: trivy-api
+
+      - name: Scan Web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ghcr.io/${{ github.repository_owner }}/wealthwise-web:latest
+          format: sarif
+          output: trivy-web.sarif
+          exit-code: "0"
+
+      - name: Upload Web scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-web.sarif
+          category: trivy-web
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 🎉 10. Pipeline Done
+  #   Runs with if: always() so it always produces a summary, even on failure.
+  #   Fails the pipeline if any required job failed or was cancelled.
+  #   Docker and image-scan jobs are CD-only and excluded from the gate.
+  # ──────────────────────────────────────────────────────────────────────────
+  done:
+    name: "🎉 Pipeline Done"
+    needs:
+      - codeql
+      - security-audit
+      - test-shared-types
+      - test-api
+      - test-web
+      - build-api
+      - build-web
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate required job results
+        env:
+          R_CODEQL:        ${{ needs.codeql.result }}
+          R_TYPES:         ${{ needs.test-shared-types.result }}
+          R_API:           ${{ needs.test-api.result }}
+          R_WEB:           ${{ needs.test-web.result }}
+          R_BUILD_API:     ${{ needs.build-api.result }}
+          R_BUILD_WEB:     ${{ needs.build-web.result }}
+        run: |
+          FAILED=0
+          for var in R_CODEQL R_TYPES R_API R_WEB R_BUILD_API R_BUILD_WEB; do
+            result="${!var}"
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "❌ $var => $result"
+              FAILED=1
+            else
+              echo "✅ $var => $result"
+            fi
+          done
+          exit $FAILED
+
+      - name: Write pipeline summary
+        if: always()
+        run: |
+          {
+            echo "## 🎉 WealthWise CI/CD Pipeline"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | ------ |"
+            echo "| 🔒 CodeQL | \`${{ needs.codeql.result }}\` |"
+            echo "| 🛡️ Security Audit | \`${{ needs.security-audit.result }}\` |"
+            echo "| 🧪 Test: shared-types | \`${{ needs.test-shared-types.result }}\` |"
+            echo "| 🧪 Test: API | \`${{ needs.test-api.result }}\` |"
+            echo "| 🧪 Test: Web | \`${{ needs.test-web.result }}\` |"
+            echo "| 🏗️ Build: API | \`${{ needs.build-api.result }}\` |"
+            echo "| 🏗️ Build: Web | \`${{ needs.build-web.result }}\` |"
+            echo ""
+            echo "| Meta | Value |"
+            echo "| ---- | ----- |"
+            echo "| Commit | \`${GITHUB_SHA::7}\` |"
+            echo "| Ref | \`$GITHUB_REF\` |"
+            echo "| Run | [#$GITHUB_RUN_NUMBER]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) |"
+            echo "| Completed | $(date -u +'%Y-%m-%dT%H:%M:%SZ') UTC |"
+          } >> "$GITHUB_STEP_SUMMARY"

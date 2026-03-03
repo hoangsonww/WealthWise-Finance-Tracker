@@ -1,0 +1,183 @@
+# Argo Rollouts — Web Blue-Green Rollout
+#
+# Replaces apps/v1/Deployment (wealthwise-web) in the production namespace.
+# Strategy: Blue-Green with pre- and post-promotion analysis.
+#
+# Promotion flow:
+#   1. New pods (green) are created alongside existing pods (blue)
+#   2. Pre-promotion analysis runs against the preview service — must pass
+#   3. Argo Rollouts switches the active service selector to the green pods
+#   4. Post-promotion analysis runs against the active service — must pass
+#   5. Old (blue) pods scale down after scaleDownDelaySeconds
+#
+# autoPromotionEnabled: false means a human (or Argo CD) must trigger promotion:
+#   kubectl argo rollouts promote wealthwise-web -n wealthwise-production
+#
+# Usage:
+#   kubectl delete deployment wealthwise-web -n wealthwise-production
+#   kubectl apply -f web-services.yaml  -n wealthwise-production
+#   kubectl apply -f web-rollout.yaml   -n wealthwise-production
+#
+#   # Watch:
+#   kubectl argo rollouts get rollout wealthwise-web -n wealthwise-production --watch
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: wealthwise-web
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/name: wealthwise-web
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-web
+
+  # ── Blue-Green Strategy ────────────────────────────────────────────────────
+  strategy:
+    blueGreen:
+      # Production traffic always served by the active service
+      activeService: wealthwise-web-active
+      # New version can be inspected via the preview service before promotion
+      previewService: wealthwise-web-preview
+
+      # Manual promotion required — prevents accidental auto-promotion
+      autoPromotionEnabled: false
+
+      # Time to wait after promotion before scaling down old (blue) pods.
+      # Allows in-flight requests to drain gracefully.
+      scaleDownDelaySeconds: 60
+
+      # Abort if the green (preview) ReplicaSet is not healthy within 10 minutes
+      abortScaleDownDelaySeconds: 30
+
+      # Pre-promotion analysis — runs against the preview service.
+      # All metrics must pass before Argo Rollouts allows promotion.
+      prePromotionAnalysis:
+        templates:
+          - templateName: wealthwise-success-rate
+        args:
+          - name: service-name
+            value: wealthwise-web-preview
+          - name: namespace
+            value: wealthwise-production
+
+      # Post-promotion analysis — runs against the now-live active service.
+      # Failure here triggers rollback (reverts the active service selector).
+      postPromotionAnalysis:
+        templates:
+          - templateName: wealthwise-success-rate
+        args:
+          - name: service-name
+            value: wealthwise-web-active
+          - name: namespace
+            value: wealthwise-production
+
+  # ── Pod Template ───────────────────────────────────────────────────────────
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wealthwise-web
+        app.kubernetes.io/component: web
+        app.kubernetes.io/part-of: wealthwise
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
+      terminationGracePeriodSeconds: 30
+
+      containers:
+        - name: web
+          image: ghcr.io/hoangsonww/wealthwise-web:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          env:
+            # These three vars are public/build-time-safe to expose.
+            # NEXTAUTH_SECRET and MONGODB_URI must come from the Secret.
+            - name: NEXTAUTH_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wealthwise-config
+                  key: NEXTAUTH_URL
+            - name: NEXT_PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wealthwise-config
+                  key: NEXT_PUBLIC_API_URL
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: wealthwise-config
+                  key: API_URL
+
+          envFrom:
+            - secretRef:
+                name: wealthwise-secrets
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            failureThreshold: 15
+            periodSeconds: 5
+
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfied: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: wealthwise-web
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfied: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: wealthwise-web

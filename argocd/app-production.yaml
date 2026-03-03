@@ -1,0 +1,107 @@
+# Argo CD Application — WealthWise Production
+#
+# Sources:   k8s/overlays/production  (Kustomize)
+# Target:    wealthwise-production namespace, in-cluster
+# Sync:      MANUAL — automated sync is deliberately disabled for production.
+#            Deployments are gated by human approval in Jenkins / GitLab.
+#
+# Rollout strategy: Argo Rollouts (canary for API, blue-green for Web).
+# Apply the rollout resources separately:
+#   kubectl apply -f k8s/argo-rollouts/ -n wealthwise-production
+#
+# Workflow:
+#   1. CI pushes new image SHA to GHCR
+#   2. CI updates image tag in kustomization.yaml and opens a PR
+#   3. PR merged → Argo CD detects OutOfSync
+#   4. Release engineer reviews diff in Argo CD UI and clicks "Sync"
+#   5. Argo Rollouts handles canary / blue-green promotion
+#
+# Manual sync via CLI:
+#   argocd app sync wealthwise-production --prune
+#   argocd app wait wealthwise-production --health --timeout 600
+#
+# Apply:
+#   kubectl apply -f app-production.yaml -n argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wealthwise-production
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: wealthwise
+    app.kubernetes.io/component: gitops
+    environment: production
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Notify on all sync and health events in production
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: wealthwise-releases
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: wealthwise-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: wealthwise-alerts
+    notifications.argoproj.io/subscribe.on-deployed.slack: wealthwise-releases
+
+spec:
+  project: wealthwise
+
+  # ── Source ─────────────────────────────────────────────────────────────────
+  source:
+    repoURL: https://github.com/hoangsonww/wealthwise.git
+    targetRevision: HEAD
+    path: k8s/overlays/production
+    kustomize:
+      # Image tags pinned to exact SHA from the release pipeline.
+      # Update via: argocd app set wealthwise-production \
+      #   --kustomize-image ghcr.io/hoangsonww/wealthwise-api:<sha>
+      images:
+        - ghcr.io/hoangsonww/wealthwise-api:latest
+        - ghcr.io/hoangsonww/wealthwise-web:latest
+
+  # ── Destination ────────────────────────────────────────────────────────────
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wealthwise-production
+
+  # ── Sync policy — NO automated sync in production ─────────────────────────
+  syncPolicy:
+    # automated: intentionally absent — all production syncs are manual
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true            # Remove stale resources after all others are applied
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+      - ApplyOutOfSyncOnly=true   # Only apply resources that are actually out-of-sync
+    retry:
+      limit: 2
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+
+  # ── Ignore expected drift ──────────────────────────────────────────────────
+  ignoreDifferences:
+    # HPA replicas managed by KEDA / cluster autoscaler at runtime
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /spec/minReplicas
+        - /spec/maxReplicas
+    # Argo Rollouts injects this label; Argo CD should not treat it as drift
+    - group: argoproj.io
+      kind: Rollout
+      jsonPointers:
+        - /spec/template/metadata/labels/rollouts-pod-template-hash
+    # Mutating webhooks (Istio, Kyverno) add sidecar containers at runtime
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations
+        - /spec/template/spec/initContainers
+    # Secret data managed by External Secrets Operator
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+
+  revisionHistoryLimit: 20   # Keep extended history for production audits

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNav } from "@/components/layout/topnav";
+import { AppFooter } from "@/components/layout/app-footer";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -43,6 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main className="scrollbar-thin flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          <AppFooter />
         </main>
       </div>
     </div>

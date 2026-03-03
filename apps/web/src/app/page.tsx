@@ -635,7 +635,7 @@ export default function LandingPage() {
                     {/* Content */}
                     <div className="flex-1 space-y-3 lg:text-left">
                       <div className="inline-flex items-center gap-2">
-                        <span className="text-4xl font-extrabold text-primary/40 dark:text-primary/30">
+                        <span className="text-4xl font-extrabold text-primary/40 dark:text-primary/60">
                           {step.step}
                         </span>
                       </div>
@@ -647,8 +647,8 @@ export default function LandingPage() {
 
                     {/* Icon circle */}
                     <div className="relative mx-auto flex-shrink-0 lg:mx-0">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 shadow-lg ring-4 ring-background">
-                        <step.icon className="h-9 w-9 text-primary" />
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary shadow-lg ring-4 ring-background">
+                        <step.icon className="h-9 w-9 text-primary-foreground" />
                       </div>
                     </div>
 
@@ -930,22 +930,34 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <a href="#features" className="transition-colors hover:text-foreground">
+                  <a
+                    href="#features"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="transition-colors hover:text-foreground">
+                  <a
+                    href="#how-it-works"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     How It Works
                   </a>
                 </li>
                 <li>
-                  <a href="#testimonials" className="transition-colors hover:text-foreground">
+                  <a
+                    href="#testimonials"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     Testimonials
                   </a>
                 </li>
                 <li>
-                  <Link href="/register" className="transition-colors hover:text-foreground">
+                  <Link
+                    href="/register"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     Get Started
                   </Link>
                 </li>
@@ -957,12 +969,18 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link href="/terms" className="transition-colors hover:text-foreground">
+                  <Link
+                    href="/terms"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/privacy" className="transition-colors hover:text-foreground">
+                  <Link
+                    href="/privacy"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
                     Privacy Policy
                   </Link>
                 </li>
@@ -974,23 +992,29 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold">Connect</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>
+                  <a
+                    href="https://sonnguyenhoang.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
+                    sonnguyenhoang.com
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/hoangsonww"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
                   <span className="transition-colors">hoangson091104@gmail.com</span>
                 </li>
               </ul>
-            </div>
-          </div>
-
-          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 sm:flex-row">
-            <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} WealthWise. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-xs text-muted-foreground">
-              <Link href="/terms" className="transition-colors hover:text-foreground">
-                Terms
-              </Link>
-              <Link href="/privacy" className="transition-colors hover:text-foreground">
-                Privacy
-              </Link>
             </div>
           </div>
         </div>

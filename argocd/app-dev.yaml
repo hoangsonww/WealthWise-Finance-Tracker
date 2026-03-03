@@ -1,0 +1,79 @@
+# Argo CD Application — WealthWise Dev
+#
+# Sources:   k8s/overlays/dev  (Kustomize)
+# Target:    wealthwise-dev namespace, in-cluster
+# Sync:      Automated — prune + self-heal enabled
+#            Dev is the fast-feedback environment; all pushes to main auto-deploy.
+#
+# Apply:
+#   kubectl apply -f app-dev.yaml -n argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wealthwise-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: wealthwise
+    app.kubernetes.io/component: gitops
+    environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Slack / webhook notifications (requires Argo CD Notifications controller)
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: wealthwise-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: wealthwise-alerts
+spec:
+  project: wealthwise
+
+  # ── Source ─────────────────────────────────────────────────────────────────
+  source:
+    repoURL: https://github.com/hoangsonww/wealthwise.git
+    targetRevision: HEAD         # Always tracks the tip of the default branch
+    path: k8s/overlays/dev
+    kustomize:
+      # Override the image tags to the latest build.
+      # In CI, use: argocd app set wealthwise-dev --kustomize-image ...
+      images:
+        - ghcr.io/hoangsonww/wealthwise-api:latest
+        - ghcr.io/hoangsonww/wealthwise-web:latest
+
+  # ── Destination ────────────────────────────────────────────────────────────
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wealthwise-dev
+
+  # ── Sync policy ────────────────────────────────────────────────────────────
+  syncPolicy:
+    automated:
+      prune: true          # Remove resources no longer in Git
+      selfHeal: true       # Re-sync if cluster state drifts from Git
+      allowEmpty: false    # Never sync an empty application set
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+  # ── Health and diff overrides ──────────────────────────────────────────────
+  ignoreDifferences:
+    # HPA min/max replicas managed by cluster autoscaler, ignore to prevent drift
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+      jsonPointers:
+        - /spec/minReplicas
+        - /spec/maxReplicas
+    # Webhook-injected annotations (e.g., Kyverno, Istio)
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/template/metadata/annotations
+
+  revisionHistoryLimit: 5

@@ -1,0 +1,55 @@
+# Stable and canary services for the WealthWise API canary rollout.
+#
+# These services replace the single k8s/base/api-service.yaml for production.
+# Argo Rollouts manages which pods each service selects by injecting the
+# `rollouts-pod-template-hash` label during rollout steps.
+#
+# Apply before the Rollout resource:
+#   kubectl apply -f api-services.yaml -n wealthwise-production
+---
+# Stable service — receives 100% of production traffic at rest.
+# Argo Rollouts updates its selector to point to the stable ReplicaSet.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wealthwise-api-stable
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/name: wealthwise-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+    wealthwise.io/service-type: stable
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: wealthwise-api
+
+---
+# Canary service — receives canary traffic percentage during rollout.
+# Argo Rollouts injects a hash-based selector to isolate canary pods.
+apiVersion: v1
+kind: Service
+metadata:
+  name: wealthwise-api-canary
+  namespace: wealthwise-production
+  labels:
+    app.kubernetes.io/name: wealthwise-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: wealthwise
+    app.kubernetes.io/managed-by: argo-rollouts
+    wealthwise.io/service-type: canary
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: wealthwise-api

@@ -4,6 +4,7 @@ import { Moon, Sun, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
+import { AppFooter } from "@/components/layout/app-footer";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { theme, setTheme } = useTheme();
@@ -53,6 +54,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Auth card */}
       <div className="relative z-10 w-full max-w-md">{children}</div>
+
+      {/* Footer */}
+      <div className="relative z-10 mt-auto w-full pt-8">
+        <AppFooter />
+      </div>
     </div>
   );
 }
