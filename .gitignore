@@ -42,3 +42,4 @@ npm-debug.log*
 # Codex — local-only overrides (personal model preferences, user-specific config)
 # .codex/config.toml and .agents/ are committed (shared project config)
 .codex/config.local.toml
+.vercel

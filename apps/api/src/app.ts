@@ -19,6 +19,9 @@ import devRoutes from "./routes/dev.routes";
 
 const app = express();
 
+// Trust proxy headers from Vercel/reverse proxies
+app.set("trust proxy", 1);
+
 // ---------------------------------------------------------------------------
 // Global middleware
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
-  MONGODB_URI: z.string().min(1, "MONGODB_URI is required").url("MONGODB_URI must be a valid URI"),
+  MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
   API_PORT: z.coerce.number().int().positive().default(4000),
