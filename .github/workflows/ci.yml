@@ -515,7 +515,8 @@ jobs:
       security-events: write
     steps:
       - name: Scan API image
-        uses: aquasecurity/trivy-action@0.28.0
+        id: trivy-api
+        uses: aquasecurity/trivy-action@0.31.0
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/wealthwise-api:latest
           format: sarif
@@ -524,13 +525,14 @@ jobs:
 
       - name: Upload API scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-api.sarif') != ''
         with:
           sarif_file: trivy-api.sarif
           category: trivy-api
 
       - name: Scan Web image
-        uses: aquasecurity/trivy-action@0.28.0
+        id: trivy-web
+        uses: aquasecurity/trivy-action@0.31.0
         with:
           image-ref: ghcr.io/${{ github.repository_owner }}/wealthwise-web:latest
           format: sarif
@@ -539,7 +541,7 @@ jobs:
 
       - name: Upload Web scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-web.sarif') != ''
         with:
           sarif_file: trivy-web.sarif
           category: trivy-web
