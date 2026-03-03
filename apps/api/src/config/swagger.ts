@@ -340,6 +340,7 @@ export function getSwaggerHtml(specUrl: string): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WealthWise API Documentation</title>
+  <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/1f4b0.png">
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui.css">
   <style>
     html { box-sizing: border-box; overflow-y: scroll; }

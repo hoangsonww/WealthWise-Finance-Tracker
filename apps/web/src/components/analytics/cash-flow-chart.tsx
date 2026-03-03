@@ -74,7 +74,9 @@ export function CashFlowChart({ data, isLoading }: CashFlowChartProps) {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     fontSize: "13px",
+                    color: "hsl(var(--foreground))",
                   }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
                 <ReferenceLine y={0} stroke="hsl(var(--border))" />

@@ -76,7 +76,9 @@ export function SpendingDonut() {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                       fontSize: "12px",
+                      color: "hsl(var(--foreground))",
                     }}
+                    itemStyle={{ color: "hsl(var(--foreground))" }}
                   />
                 </PieChart>
               </ResponsiveContainer>

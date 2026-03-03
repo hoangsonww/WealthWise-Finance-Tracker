@@ -60,7 +60,9 @@ export function DayOfWeekChart({ data, isLoading }: DayOfWeekChartProps) {
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     fontSize: "13px",
+                    color: "hsl(var(--foreground))",
                   }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
                 <Bar dataKey="total" name="total" fill="#f59e0b" radius={[4, 4, 0, 0]} />

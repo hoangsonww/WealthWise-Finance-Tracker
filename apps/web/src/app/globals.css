@@ -166,4 +166,10 @@
   .animate-in-view {
     animation: fade-in 0.6s ease-out both;
   }
+
+  /* Recharts tooltip text respects light/dark theme */
+  .recharts-tooltip-item,
+  .recharts-tooltip-label {
+    color: hsl(var(--foreground)) !important;
+  }
 }

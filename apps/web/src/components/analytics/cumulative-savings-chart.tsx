@@ -79,7 +79,9 @@ export function CumulativeSavingsChart({ data, isLoading }: CumulativeSavingsCha
                     border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     fontSize: "13px",
+                    color: "hsl(var(--foreground))",
                   }}
+                  itemStyle={{ color: "hsl(var(--foreground))" }}
                   labelStyle={{ color: "hsl(var(--foreground))" }}
                 />
                 <Area
