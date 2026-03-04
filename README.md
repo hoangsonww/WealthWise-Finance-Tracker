@@ -41,6 +41,11 @@
 [![Cloud Build](https://img.shields.io/badge/Cloud_Build-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/build)
 [![OCI](https://img.shields.io/badge/OCI-F80000?logo=oracle&logoColor=white)](https://www.oracle.com/cloud/)
 [![OKE](https://img.shields.io/badge/OKE-F80000?logo=oracle&logoColor=white)](https://www.oracle.com/cloud/cloud-native/container-engine-kubernetes/)
+[![Jenkins](https://img.shields.io/badge/Jenkins-007DFF?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/)
+[![GitLab CI/CD](https://img.shields.io/badge/GitLab_CI-FCA121?logo=gitlab&logoColor=white)](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
+[![Argo CD](https://img.shields.io/badge/ArgoCD-0.24-ef4444?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![Argo Rollouts](https://img.shields.io/badge/Argo_Rollouts-1.3-ef4444?logo=argo&logoColor=white)](https://argo-rollouts.readthedocs.io/)
 
 A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, budgets, goals, recurring bills, and analytics - all with dark mode, CSV import, and a responsive design.
 
@@ -77,6 +82,7 @@ A full-stack personal finance application built with a **Turborepo monorepo**, f
   - [Cloud Providers](#cloud-providers)
   - [Production Nginx](#production-nginx)
   - [Utility Scripts](#utility-scripts)
+  - [GitHub Actions CI/CD](#github-actions)
 - [Test Coverage](#test-coverage)
 - [Tech Stack](#tech-stack)
 - [License](#license)
@@ -676,6 +682,14 @@ Each provider directory includes IaC templates, deployment scripts, and secret m
 | `scripts/generate-secrets.sh` | Generate cryptographic secrets for all env vars |
 | `scripts/health-check.sh` | Validate API health endpoint response |
 | `scripts/docker-build.sh` | Build production images tagged with git SHA |
+
+### GitHub Actions
+
+We also provide CI/CD workflows for automated testing, building, and deployment to AWS, Azure, GCP, and OCI. See `.github/workflows/` for the full pipeline definitions.
+
+<p align="center">
+    <img src="images/github-actions.png" width="100%" />
+</p>
 
 ---
 

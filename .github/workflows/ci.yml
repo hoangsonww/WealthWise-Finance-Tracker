@@ -14,7 +14,8 @@
 #                                          ├──► test-api          ──► build-api
 #                                          └──► test-web          ──► build-web ──► docker-web ──► image-scan
 #
-#   Docker push and image-scan only run on push to main/master (not on PRs).
+#   Docker builds run on both pushes and PRs. Image push and image-scan only run
+#   on push to main/master (not on PRs).
 
 name: CI / CD Pipeline for WealthWise
 
@@ -406,13 +407,12 @@ jobs:
   # 🐳 8a. Docker: API → GHCR
   #   Builds apps/api/Dockerfile.prod (hardened: dumb-init, non-root user,
   #   HEALTHCHECK, minimal image) and pushes to ghcr.io.
-  #   Only runs on push to main/master — not on pull requests.
+  #   Runs on pushes and PRs. PRs build only; pushes also publish to GHCR.
   # ──────────────────────────────────────────────────────────────────────────
   docker-api:
     name: "🐳 Docker: API → GHCR"
     needs: [build-api]
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -423,6 +423,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -443,7 +444,7 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile.prod
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=api
@@ -453,13 +454,12 @@ jobs:
   # 🐳 8b. Docker: Web → GHCR
   #   Builds apps/web/Dockerfile.prod (standalone Next.js output, dumb-init).
   #   Build-args inject public env vars; secrets are mounted at runtime.
-  #   Only runs on push to main/master.
+  #   Runs on pushes and PRs. PRs build only; pushes also publish to GHCR.
   # ──────────────────────────────────────────────────────────────────────────
   docker-web:
     name: "🐳 Docker: Web → GHCR"
     needs: [build-web]
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: write
@@ -470,6 +470,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -490,7 +491,7 @@ jobs:
         with:
           context: .
           file: apps/web/Dockerfile.prod
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

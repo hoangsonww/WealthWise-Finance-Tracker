@@ -41,6 +41,11 @@
 [![Cloud Build](https://img.shields.io/badge/Cloud_Build-4285F4?logo=googlecloud&logoColor=white)](https://cloud.google.com/build)
 [![OCI](https://img.shields.io/badge/OCI-F80000?logo=oracle&logoColor=white)](https://www.oracle.com/cloud/)
 [![OKE](https://img.shields.io/badge/OKE-F80000?logo=oracle&logoColor=white)](https://www.oracle.com/cloud/cloud-native/container-engine-kubernetes/)
+[![Jenkins](https://img.shields.io/badge/Jenkins-007DFF?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/)
+[![GitLab CI/CD](https://img.shields.io/badge/GitLab_CI-FCA121?logo=gitlab&logoColor=white)](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
+[![Argo CD](https://img.shields.io/badge/ArgoCD-0.24-ef4444?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![Argo Rollouts](https://img.shields.io/badge/Argo_Rollouts-1.3-ef4444?logo=argo&logoColor=white)](https://argo-rollouts.readthedocs.io/)
 
 ---
 

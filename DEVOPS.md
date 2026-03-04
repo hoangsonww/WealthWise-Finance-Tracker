@@ -33,6 +33,10 @@ Comprehensive documentation of all DevOps, infrastructure, and operational conce
 - [Health Checks & Monitoring](#health-checks--monitoring)
 - [Security Posture](#security-posture)
 - [CI/CD Pipeline](#cicd-pipeline)
+  - [GitHub Actions](#github-actions)
+  - [GitHub Actions Job Detail](#github-actions-job-detail)
+  - [Additional CI/CD Platforms](#additional-cicd-platforms)
+  - [GitOps & Progressive Delivery](#gitops--progressive-delivery)
 - [Deployment Procedures](#deployment-procedures)
   - [Development Deployment](#development-deployment)
   - [Production Deployment](#production-deployment)
@@ -1037,11 +1041,11 @@ graph TB
 
 ## CI/CD Pipeline
 
-> **Current state**: No CI/CD pipeline exists. The `.github/` directory contains only a PR template and security policy.
+WealthWise provides a variety of CI/CD pipeline configurations to support different organizational needs. The current setup uses GitHub Actions for both CI and CD, but the structure is designed to be portable to other platforms like Jenkins or GitLab CI if desired.
 
-### Recommended Pipeline
+### GitHub Actions
 
-The following is the recommended GitHub Actions pipeline structure:
+The following is the project's GitHub Actions pipeline structure:
 
 ```mermaid
 graph TD
@@ -1065,7 +1069,8 @@ graph TD
         Parallel1 --> Gate{All pass?}
         BuildAPI --> Gate
         BuildWeb --> Gate
-        Gate -->|Yes| Ready[Ready for review]
+        Gate -->|Yes| DockerPR[Build Docker images<br/>no registry push on PR]
+        DockerPR --> Ready[Ready for review]
         Gate -->|No| Fail[Block merge]
     end
 
@@ -1085,6 +1090,103 @@ graph TD
     style DeployProd fill:#10b981,color:#fff
     style Rollback fill:#ef4444,color:#fff
 ```
+
+<p align="center">
+    <img src="images/github-actions.png" width="100%" />
+</p>
+
+**Current behavior:**
+- `pull_request` to `main` or `master`: run install, formatting, type-checking, tests, package builds, and Docker image builds for `apps/api` and `apps/web`.
+- `push` to `main` or `master`: run the full validation pipeline, build Docker images, push images to GHCR, and run image scanning.
+- `workflow_dispatch`: allow manual execution for operational checks or release validation.
+
+### GitHub Actions Job Detail
+
+The workflow in `.github/workflows/ci.yml` is stage-gated and intentionally conservative:
+
+| Stage | Purpose | Notes |
+|------|---------|-------|
+| `preflight` | Collect run metadata | Exposes short SHA and logs runner context |
+| `install` | Prime dependency and Turbo caches | Uses `actions/setup-node` npm caching |
+| `format-check` | Enforce Prettier formatting | Fails fast on unformatted files |
+| `type-check` | Run `tsc --noEmit` through Turbo | Guards all packages before build |
+| `security-audit` | Dependency vulnerability check | Advisory security gate |
+| `test-shared-types` | Validate schema package | Protects cross-package contract changes |
+| `test-api` | Run API Vitest suite | Uses real in-memory MongoDB |
+| `test-web` | Run web Vitest suite | Covers client hooks and components |
+| `build-api` | Build API and dependent packages | Confirms production compile path |
+| `build-web` | Build Next.js app and shared types | Confirms standalone output path |
+| `docker-api` | Build API production image | PRs build only, non-PR runs also push |
+| `docker-web` | Build Web production image | PRs build only, non-PR runs also push |
+| `image-scan` | Scan pushed images with Trivy | Runs only when images are published |
+| summary/report jobs | Aggregate results | Keeps failure reporting visible even on partial failures |
+
+**Why the GitHub Actions setup matters operationally:**
+- Dockerfiles are validated in CI, not just the Node build, so container regressions surface before merge.
+- Docker Buildx cache (`type=gha`) reduces repeated image build time across runs.
+- PR builds avoid registry publication while still exercising the exact container build path used for releases.
+- GHCR tags are derived from the commit SHA and default branch state, which supports traceability and rollback.
+- The workflow is compatible with monorepo change patterns because `shared-types` is built ahead of dependent packages.
+
+### Additional CI/CD Platforms
+
+GitHub Actions is the active pipeline today, but the project structure is compatible with other orchestrators when an organization needs different controls or hosting models.
+
+#### Jenkins
+
+Jenkins is a practical fit when the team needs self-hosted runners, custom network access, or centralized enterprise credential management. In a Jenkins deployment, the same pipeline stages should be preserved:
+
+- checkout
+- `npm ci`
+- `npx turbo lint`
+- `npx turbo test`
+- `npx turbo build`
+- `docker buildx build` for `apps/api/Dockerfile.prod` and `apps/web/Dockerfile.prod`
+- push versioned images to GHCR, ECR, GCR, or another registry
+
+The clean mapping is one multibranch pipeline with separate stages for validation, container build, and deploy approval gates.
+
+#### GitLab CI
+
+GitLab CI is also a strong fit for this repo because the monorepo already uses deterministic package commands and Docker-based release artifacts. A typical GitLab pipeline would map to:
+
+- `lint` stage for formatting and TypeScript validation
+- `test` stage for API, web, and shared-types suites
+- `build` stage for Turborepo package builds
+- `containerize` stage for Docker Buildx image creation
+- `deploy` stage for environment promotion
+
+If GitLab CI is adopted, `rules:` should mirror the current GitHub Actions behavior:
+- merge request pipelines should build both Docker images without pushing production tags
+- default branch pipelines should push immutable SHA tags and promote deployment artifacts
+
+### GitOps & Progressive Delivery
+
+This repository does not currently include committed Argo manifests, but the release model is well-suited to GitOps controllers once Kubernetes deployment becomes a requirement.
+
+#### Argo CD
+
+Argo CD is the natural CD layer if the team wants deployments to be driven from Kubernetes manifests or Helm charts stored in Git. In that setup:
+
+- GitHub Actions, Jenkins, or GitLab CI builds and publishes `wealthwise-api` and `wealthwise-web` images
+- a deployment repository, Helm values file, or Kubernetes overlay is updated with the new image tag
+- Argo CD detects the Git change and syncs the cluster to the declared state
+
+This keeps CI responsible for producing artifacts and GitOps responsible for reconciling runtime state.
+
+#### Argo Rollouts
+
+Argo Rollouts complements Argo CD when production deployment needs safer traffic shifting than a basic rolling update. For WealthWise, it would be a good fit for:
+
+- canary releases of the API before full promotion
+- blue/green rollout of the Next.js web container
+- automated aborts if health checks, smoke tests, or metric analysis degrade after release
+
+The practical pattern is:
+- CI publishes a new image tag
+- Argo CD syncs the rollout manifest change
+- Argo Rollouts gradually shifts traffic
+- rollback is handled by rollout strategy rather than manual image reversion alone
 
 ---
 
@@ -1146,7 +1248,6 @@ export JWT_REFRESH_SECRET=$(openssl rand -base64 48)
 export NEXTAUTH_SECRET=$(openssl rand -base64 48)
 export NEXTAUTH_URL=https://your-domain.com
 export NEXT_PUBLIC_API_URL=https://your-domain.com/api/v1
-export CORS_ORIGIN=https://your-domain.com
 export NODE_ENV=production
 
 # 2. Place SSL certificates
