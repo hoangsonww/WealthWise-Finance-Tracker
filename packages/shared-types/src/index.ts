@@ -6,6 +6,8 @@ export {
   loginSchema,
   updateProfileSchema,
   userResponseSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "./schemas/user.schema";
 
 export {
@@ -65,6 +67,8 @@ export type {
   LoginInput,
   UpdateProfileInput,
   UserResponse,
+  ForgotPasswordInput,
+  ResetPasswordInput,
   // Account
   CreateAccountInput,
   UpdateAccountInput,

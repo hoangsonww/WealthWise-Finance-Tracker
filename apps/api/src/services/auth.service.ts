@@ -128,6 +128,30 @@ export async function updateProfile(userId: string, data: { name?: string; curre
   return sanitizeUser(user);
 }
 
+/**
+ * Verify that a user with the given email exists (for forgot-password flow).
+ * Throws 404 if not found.
+ */
+export async function verifyEmailExists(email: string): Promise<void> {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw ApiError.notFound("No account found with this email address");
+  }
+}
+
+/**
+ * Reset a user's password directly (simplified flow — no email token).
+ */
+export async function resetPassword(email: string, newPassword: string): Promise<void> {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw ApiError.notFound("No account found with this email address");
+  }
+  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+  user.passwordHash = passwordHash;
+  await user.save();
+}
+
 export async function deleteAccount(userId: string): Promise<void> {
   const user = await User.findById(userId);
   if (!user) {

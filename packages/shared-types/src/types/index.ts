@@ -5,6 +5,8 @@ import {
   loginSchema,
   updateProfileSchema,
   userResponseSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../schemas/user.schema";
 
 import {
@@ -53,6 +55,8 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 // ---------------------------------------------------------------------------
 // Account types

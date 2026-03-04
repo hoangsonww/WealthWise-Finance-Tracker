@@ -73,6 +73,24 @@ export const updateMe = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /auth/forgot-password
+ */
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  await authService.verifyEmailExists(email);
+  res.status(200).json({ success: true, data: null });
+});
+
+/**
+ * POST /auth/reset-password
+ */
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  await authService.resetPassword(email, password);
+  res.status(200).json({ success: true, data: null });
+});
+
+/**
  * DELETE /auth/me
  */
 export const deleteMe = asyncHandler(async (req: Request, res: Response) => {

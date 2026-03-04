@@ -19,6 +19,7 @@
 [![JWT](https://img.shields.io/badge/JWT-000000?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Swagger](https://img.shields.io/badge/Swagger-OpenAPI_3-85ea2d?logo=swagger&logoColor=black)](https://swagger.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47a248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![mongodb-memory-server](https://img.shields.io/badge/mongodb--memory--server-8-47a248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongoose&logoColor=white)](https://mongoosejs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
@@ -122,6 +123,17 @@ graph TB
 ```
 
 The application follows a **client-server architecture** inside a **Turborepo monorepo**. The frontend and backend are fully decoupled, communicating over a REST API, with a shared package providing Zod schemas that enforce type safety at both boundaries.
+
+> [!NOTE]
+> The frontend is deployed on Vercel at: **[https://wealthwisefinancial.vercel.app/](https://wealthwisefinancial.vercel.app/).** You can register a new account or use the following demo credentials to explore the app:
+> ```
+> Email: demo@wealthwise.app
+> Password: Demo1234!
+> ```
+> Or, create your own account to test the registration flow and see how the app works with an empty dataset.
+
+> [!TIP]
+> The backend is also fully deployed live, accessible at: [https://wealthwise-backend-api.vercel.app/](https://wealthwise-backend-api.vercel.app/). You can explore the API documentation at [https://wealthwise-backend-api.vercel.app/api/docs](https://wealthwise-backend-api.vercel.app/api/docs) and use the demo credentials above to authenticate and test the endpoints.
 
 ---
 

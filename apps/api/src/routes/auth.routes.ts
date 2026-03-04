@@ -3,7 +3,13 @@ import { validate } from "../middleware/validate";
 import { authenticate } from "../middleware/auth";
 import { authLimiter } from "../middleware/rate-limit";
 import * as authController from "../controllers/auth.controller";
-import { registerSchema, loginSchema, updateProfileSchema } from "@wealthwise/shared-types";
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from "@wealthwise/shared-types";
 
 const router = Router();
 
@@ -154,5 +160,77 @@ router.patch("/me", authenticate, validate(updateProfileSchema), authController.
  *         description: Unauthorized
  */
 router.delete("/me", authenticate, authController.deleteMe);
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Verify that an account exists for the given email (forgot-password flow)
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Email verified — account exists
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: No account found with this email address
+ */
+router.post(
+  "/forgot-password",
+  authLimiter,
+  validate(forgotPasswordSchema),
+  authController.forgotPassword
+);
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Reset a user's password using their email and a new password
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: >
+ *                   Must be at least 8 characters and contain at least one uppercase
+ *                   letter, one lowercase letter, and one number.
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: No account found with this email address
+ */
+router.post(
+  "/reset-password",
+  authLimiter,
+  validate(resetPasswordSchema),
+  authController.resetPassword
+);
 
 export default router;

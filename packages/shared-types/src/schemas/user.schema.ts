@@ -57,3 +57,24 @@ export const userResponseSchema = z.object({
   currency: z.string().length(3),
   createdAt: z.string().datetime(),
 });
+
+/**
+ * Schema for forgot password — verifies the email exists.
+ */
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Please provide a valid email address"),
+});
+
+/**
+ * Schema for resetting the password (email + new password).
+ * Reuses the same password policy as registration.
+ */
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Please provide a valid email address"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});

@@ -6,23 +6,88 @@ import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://wealthwisefinancial.vercel.app"),
+
   title: {
-    default: "WealthWise - Smart Personal Finance",
+    default: "WealthWise – Smart Personal Finance Tracker",
     template: "%s | WealthWise",
   },
+
   description:
-    "Take control of your finances with WealthWise. Track transactions, manage budgets, set savings goals, and gain insights with powerful analytics.",
+    "WealthWise is your all-in-one personal finance companion. Track income and expenses, manage budgets, set savings goals, monitor recurring bills, and unlock deep financial analytics — all in one secure, intuitive dashboard.",
+
   keywords: [
     "personal finance",
     "budget tracker",
     "expense tracker",
+    "income tracker",
     "savings goals",
     "financial analytics",
+    "money management",
+    "net worth tracker",
+    "recurring bills",
+    "spending insights",
+    "financial dashboard",
+    "transaction manager",
+    "finance app",
+    "wealth tracker",
+    "free budget app",
   ],
+
+  authors: [{ name: "Son Nguyen", url: "https://github.com/hoangsonww" }],
+  creator: "Son Nguyen",
+  publisher: "WealthWise",
+
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+
+  openGraph: {
+    type: "website",
+    title: "WealthWise – Smart Personal Finance Tracker",
+    description:
+      "Take full control of your finances with WealthWise. Track transactions, manage budgets, set savings goals, and gain actionable insights with powerful analytics.",
+    url: "https://wealthwisefinancial.vercel.app",
+    siteName: "WealthWise",
+    locale: "en_US",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 512,
+        height: 512,
+        alt: "WealthWise – Smart Personal Finance Tracker",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "WealthWise – Smart Personal Finance Tracker",
+    description:
+      "Track expenses, manage budgets, and hit savings goals with WealthWise — your smart personal finance dashboard.",
+    images: ["/icon.svg"],
+  },
+
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
     apple: "/icon.svg",
+  },
+
+  manifest: "/manifest.json",
+
+  alternates: {
+    canonical: "https://wealthwisefinancial.vercel.app",
   },
 };
 

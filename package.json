@@ -1,6 +1,15 @@
 {
   "name": "wealthwise",
   "private": true,
+  "author": "Son Nguyen",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoangsonww/WealthWise-Finance-Tracker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hoangsonww/WealthWise-Finance-Tracker/issues"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
