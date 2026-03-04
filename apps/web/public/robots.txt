@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Disallow: /dashboard
+Disallow: /transactions
+Disallow: /accounts
+Disallow: /budgets
+Disallow: /goals
+Disallow: /analytics
+Disallow: /recurring
+Disallow: /settings
+Sitemap: https://wealthwisefinancial.vercel.app/sitemap.xml

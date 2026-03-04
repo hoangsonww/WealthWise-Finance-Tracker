@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import { format } from "date-fns";
 import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { MonthlySnapshot } from "@/components/dashboard/monthly-snapshot";
@@ -8,6 +7,18 @@ import { BudgetHealth } from "@/components/dashboard/budget-health";
 import { SpendingDonut } from "@/components/dashboard/spending-donut";
 import { UpcomingBills } from "@/components/dashboard/upcoming-bills";
 import { GoalProgress } from "@/components/dashboard/goal-progress";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Your personal finance overview. See your net worth, monthly cash flow, recent transactions, budget health, and upcoming bills — all at a glance.",
+  openGraph: {
+    title: "Dashboard | WealthWise",
+    description:
+      "Your personal finance overview. See net worth, monthly cash flow, recent transactions, budget health, and upcoming bills at a glance.",
+    url: "https://wealthwisefinancial.vercel.app/dashboard",
+  },
+};
 
 export default function DashboardPage() {
   const greeting = getGreeting();

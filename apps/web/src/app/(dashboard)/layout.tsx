@@ -43,8 +43,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <TopNav />
 
         <main className="scrollbar-thin flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
-          <AppFooter />
+          <div className="flex min-h-full flex-col">
+            <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+              {children}
+            </div>
+            <AppFooter />
+          </div>
         </main>
       </div>
     </div>
