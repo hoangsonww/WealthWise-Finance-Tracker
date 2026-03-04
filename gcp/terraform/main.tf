@@ -65,6 +65,40 @@ resource "google_artifact_registry_repository" "web" {
   depends_on = [google_project_service.apis["artifactregistry.googleapis.com"]]
 }
 
+resource "google_artifact_registry_repository" "mcp" {
+  location      = var.region
+  repository_id = "wealthwise-mcp"
+  format        = "DOCKER"
+  description   = "WealthWise MCP server container images"
+
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 10
+    }
+  }
+
+  depends_on = [google_project_service.apis["artifactregistry.googleapis.com"]]
+}
+
+resource "google_artifact_registry_repository" "agentic_ai" {
+  location      = var.region
+  repository_id = "wealthwise-agentic-ai"
+  format        = "DOCKER"
+  description   = "WealthWise Agentic AI container images"
+
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 10
+    }
+  }
+
+  depends_on = [google_project_service.apis["artifactregistry.googleapis.com"]]
+}
+
 # VPC Connector for Cloud Run → MongoDB Atlas
 resource "google_vpc_access_connector" "connector" {
   name          = "wealthwise-connector"
@@ -86,6 +120,16 @@ resource "google_service_account" "web" {
   display_name = "WealthWise Web Service Account"
 }
 
+resource "google_service_account" "mcp" {
+  account_id   = "wealthwise-mcp"
+  display_name = "WealthWise MCP Service Account"
+}
+
+resource "google_service_account" "agentic_ai" {
+  account_id   = "wealthwise-agentic-ai"
+  display_name = "WealthWise Agentic AI Service Account"
+}
+
 # Secret Manager access for API
 resource "google_secret_manager_secret_iam_member" "api_secrets" {
   for_each  = toset(["jwt-secret", "jwt-refresh-secret", "mongodb-uri"])
@@ -100,6 +144,22 @@ resource "google_secret_manager_secret_iam_member" "web_secrets" {
   secret_id = each.key
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.web.email}"
+}
+
+# Secret Manager access for MCP
+resource "google_secret_manager_secret_iam_member" "mcp_secrets" {
+  for_each  = toset(["jwt-secret", "mongodb-uri"])
+  secret_id = each.key
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.mcp.email}"
+}
+
+# Secret Manager access for Agentic AI
+resource "google_secret_manager_secret_iam_member" "agentic_ai_secrets" {
+  for_each  = toset(["jwt-secret", "anthropic-api-key"])
+  secret_id = each.key
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.agentic_ai.email}"
 }
 
 # Cloud Run - API
@@ -289,6 +349,193 @@ resource "google_cloud_run_v2_service" "web" {
   ]
 }
 
+# Cloud Run - MCP
+resource "google_cloud_run_v2_service" "mcp" {
+  name     = "wealthwise-mcp"
+  location = var.region
+
+  template {
+    service_account = google_service_account.mcp.email
+
+    scaling {
+      min_instance_count = var.mcp_min_instances
+      max_instance_count = var.mcp_max_instances
+    }
+
+    vpc_access {
+      connector = google_vpc_access_connector.connector.id
+      egress    = "PRIVATE_RANGES_ONLY"
+    }
+
+    containers {
+      image = var.mcp_image
+
+      ports {
+        container_port = 5100
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      env {
+        name  = "NODE_ENV"
+        value = "production"
+      }
+
+      env {
+        name  = "MCP_PORT"
+        value = "5100"
+      }
+
+      env {
+        name  = "MCP_TRANSPORT"
+        value = "sse"
+      }
+
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "jwt-secret"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "MONGODB_URI"
+        value_source {
+          secret_key_ref {
+            secret  = "mongodb-uri"
+            version = "latest"
+          }
+        }
+      }
+
+      startup_probe {
+        http_get {
+          path = "/health"
+          port = 5100
+        }
+        initial_delay_seconds = 5
+        period_seconds        = 5
+        failure_threshold     = 12
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/health"
+          port = 5100
+        }
+        period_seconds    = 10
+        failure_threshold = 3
+      }
+    }
+  }
+
+  ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+
+  depends_on = [
+    google_project_service.apis["run.googleapis.com"],
+    google_secret_manager_secret_iam_member.mcp_secrets,
+  ]
+}
+
+# Cloud Run - Agentic AI
+resource "google_cloud_run_v2_service" "agentic_ai" {
+  name     = "wealthwise-agentic-ai"
+  location = var.region
+
+  template {
+    service_account = google_service_account.agentic_ai.email
+
+    scaling {
+      min_instance_count = var.agentic_ai_min_instances
+      max_instance_count = var.agentic_ai_max_instances
+    }
+
+    containers {
+      image = var.agentic_ai_image
+
+      ports {
+        container_port = 5200
+      }
+
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
+
+      env {
+        name  = "NODE_ENV"
+        value = "production"
+      }
+
+      env {
+        name  = "AGENT_PORT"
+        value = "5200"
+      }
+
+      env {
+        name  = "MCP_SERVER_URL"
+        value = "https://${var.domain}/mcp"
+      }
+
+      env {
+        name = "JWT_SECRET"
+        value_source {
+          secret_key_ref {
+            secret  = "jwt-secret"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name = "ANTHROPIC_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = "anthropic-api-key"
+            version = "latest"
+          }
+        }
+      }
+
+      startup_probe {
+        http_get {
+          path = "/health"
+          port = 5200
+        }
+        initial_delay_seconds = 5
+        period_seconds        = 5
+        failure_threshold     = 12
+      }
+
+      liveness_probe {
+        http_get {
+          path = "/health"
+          port = 5200
+        }
+        period_seconds    = 10
+        failure_threshold = 3
+      }
+    }
+  }
+
+  ingress = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+
+  depends_on = [
+    google_project_service.apis["run.googleapis.com"],
+    google_secret_manager_secret_iam_member.agentic_ai_secrets,
+  ]
+}
+
 # Serverless NEGs for Load Balancer
 resource "google_compute_region_network_endpoint_group" "api_neg" {
   name                  = "wealthwise-api-neg"
@@ -310,6 +557,26 @@ resource "google_compute_region_network_endpoint_group" "web_neg" {
   }
 }
 
+resource "google_compute_region_network_endpoint_group" "mcp_neg" {
+  name                  = "wealthwise-mcp-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_v2_service.mcp.name
+  }
+}
+
+resource "google_compute_region_network_endpoint_group" "agentic_ai_neg" {
+  name                  = "wealthwise-agentic-ai-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+
+  cloud_run {
+    service = google_cloud_run_v2_service.agentic_ai.name
+  }
+}
+
 # Backend services
 resource "google_compute_backend_service" "api" {
   name                  = "wealthwise-api-backend"
@@ -328,6 +595,26 @@ resource "google_compute_backend_service" "web" {
 
   backend {
     group = google_compute_region_network_endpoint_group.web_neg.id
+  }
+}
+
+resource "google_compute_backend_service" "mcp" {
+  name                  = "wealthwise-mcp-backend"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  protocol              = "HTTPS"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.mcp_neg.id
+  }
+}
+
+resource "google_compute_backend_service" "agentic_ai" {
+  name                  = "wealthwise-agentic-ai-backend"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  protocol              = "HTTPS"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.agentic_ai_neg.id
   }
 }
 

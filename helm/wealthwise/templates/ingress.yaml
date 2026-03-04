@@ -31,6 +31,20 @@ spec:
                 name: {{ include "wealthwise.fullname" . }}-api
                 port:
                   number: {{ .Values.api.port }}
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wealthwise.fullname" . }}-mcp
+                port:
+                  number: {{ .Values.mcp.port }}
+          - path: /agent
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "wealthwise.fullname" . }}-agentic-ai
+                port:
+                  number: {{ .Values.agenticAi.port }}
           - path: /
             pathType: Prefix
             backend:

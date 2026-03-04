@@ -12,7 +12,9 @@
   },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "mcp",
+    "agentic-ai"
   ],
   "scripts": {
     "dev": "turbo dev",

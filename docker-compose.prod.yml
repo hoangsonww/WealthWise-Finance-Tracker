@@ -53,6 +53,46 @@ services:
       - wealthwise-network
     restart: always
 
+  mcp:
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
+      target: production
+    container_name: wealthwise-mcp-prod
+    expose:
+      - "5100"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/wealthwise
+      - JWT_SECRET=${JWT_SECRET}
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=5100
+    depends_on:
+      - mongodb
+    networks:
+      - wealthwise-network
+    restart: always
+
+  agentic-ai:
+    build:
+      context: .
+      dockerfile: agentic-ai/Dockerfile
+      target: production
+    container_name: wealthwise-agentic-ai-prod
+    expose:
+      - "5200"
+    environment:
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp:5100
+      - JWT_SECRET=${JWT_SECRET}
+      - AGENT_PORT=5200
+    depends_on:
+      - mcp
+    networks:
+      - wealthwise-network
+    restart: always
+
   nginx:
     image: nginx:alpine
     container_name: wealthwise-nginx
@@ -65,6 +105,8 @@ services:
     depends_on:
       - web
       - api
+      - mcp
+      - agentic-ai
     networks:
       - wealthwise-network
     restart: always

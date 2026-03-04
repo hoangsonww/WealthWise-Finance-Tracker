@@ -1,0 +1,84 @@
+{{- if .Values.agenticAi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "wealthwise.fullname" . }}-agentic-ai
+  namespace: {{ include "wealthwise.namespace" . }}
+  labels:
+    {{- include "wealthwise.agenticAi.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agenticAi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "wealthwise.agenticAi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "wealthwise.agenticAi.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: agentic-ai
+          image: "{{ .Values.agenticAi.image.repository }}:{{ .Values.agenticAi.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.agenticAi.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.agenticAi.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "wealthwise.configMapName" . }}
+            - secretRef:
+                name: {{ include "wealthwise.secretName" . }}
+          env:
+            - name: AGENT_PORT
+              value: {{ .Values.agenticAi.port | quote }}
+            - name: MCP_SERVER_URL
+              value: "http://{{ include "wealthwise.fullname" . }}-mcp:{{ .Values.mcp.port }}"
+          {{- with .Values.agenticAi.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.agenticAi.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.agenticAi.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.agenticAi.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      {{- if .Values.agenticAi.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ .Values.agenticAi.topologySpreadConstraints.maxSkew }}
+          topologyKey: {{ .Values.agenticAi.topologySpreadConstraints.topologyKey }}
+          whenUnsatisfied: {{ .Values.agenticAi.topologySpreadConstraints.whenUnsatisfied }}
+          labelSelector:
+            matchLabels:
+              {{- include "wealthwise.agenticAi.selectorLabels" . | nindent 14 }}
+      {{- end }}
+{{- end }}

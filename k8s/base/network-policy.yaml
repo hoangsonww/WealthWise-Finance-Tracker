@@ -53,6 +53,102 @@ spec:
         - protocol: UDP
           port: 53
 ---
+# MCP: accept traffic from agentic-ai and ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mcp-ingress
+  namespace: wealthwise
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-mcp
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: wealthwise-agentic-ai
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5100
+---
+# MCP: egress to MongoDB + DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mcp-egress-mongodb
+  namespace: wealthwise
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-mcp
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 27017
+    - ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+---
+# Agentic AI: accept traffic from ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-agentic-ai-ingress
+  namespace: wealthwise
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-agentic-ai
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5200
+---
+# Agentic AI: egress to MCP, Anthropic API (HTTPS), DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-agentic-ai-egress
+  namespace: wealthwise
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-agentic-ai
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: wealthwise-mcp
+      ports:
+        - protocol: TCP
+          port: 5100
+    - ports:
+        - protocol: TCP
+          port: 443
+    - ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

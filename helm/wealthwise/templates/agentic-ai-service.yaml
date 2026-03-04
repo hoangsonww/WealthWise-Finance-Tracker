@@ -1,0 +1,17 @@
+{{- if .Values.agenticAi.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "wealthwise.fullname" . }}-agentic-ai
+  namespace: {{ include "wealthwise.namespace" . }}
+  labels:
+    {{- include "wealthwise.agenticAi.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.agenticAi.service.type }}
+  ports:
+    - port: {{ .Values.agenticAi.port }}
+      targetPort: {{ .Values.agenticAi.port }}
+      protocol: TCP
+  selector:
+    {{- include "wealthwise.agenticAi.selectorLabels" . | nindent 4 }}
+{{- end }}

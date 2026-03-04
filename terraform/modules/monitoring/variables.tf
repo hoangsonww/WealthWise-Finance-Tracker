@@ -28,6 +28,26 @@ variable "web_target_group_arn_suffix" {
   type        = string
 }
 
+variable "mcp_service_name" {
+  description = "Name of the MCP ECS service"
+  type        = string
+}
+
+variable "agentic_ai_service_name" {
+  description = "Name of the agentic AI ECS service"
+  type        = string
+}
+
+variable "mcp_target_group_arn_suffix" {
+  description = "ARN suffix of the MCP target group"
+  type        = string
+}
+
+variable "agentic_ai_target_group_arn_suffix" {
+  description = "ARN suffix of the agentic AI target group"
+  type        = string
+}
+
 variable "alarm_email" {
   description = "Email address for alarm notifications"
   type        = string

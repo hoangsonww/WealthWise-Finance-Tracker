@@ -28,7 +28,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           title   = "ECS CPU Utilization"
           metrics = [
             ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", var.api_service_name],
-            ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", var.web_service_name]
+            ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", var.web_service_name],
+            ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", var.mcp_service_name],
+            ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", var.agentic_ai_service_name]
           ]
           period = 300
           stat   = "Average"
@@ -45,7 +47,9 @@ resource "aws_cloudwatch_dashboard" "main" {
           title   = "ECS Memory Utilization"
           metrics = [
             ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", var.api_service_name],
-            ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", var.web_service_name]
+            ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", var.web_service_name],
+            ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", var.mcp_service_name],
+            ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", var.agentic_ai_service_name]
           ]
           period = 300
           stat   = "Average"
@@ -144,6 +148,102 @@ resource "aws_cloudwatch_metric_alarm" "web_high_cpu" {
   dimensions = {
     ClusterName = var.cluster_name
     ServiceName = var.web_service_name
+  }
+
+  tags = {
+    Project     = "wealthwise"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "mcp_high_cpu" {
+  alarm_name          = "${var.project_name}-${var.environment}-mcp-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = var.cpu_threshold
+  alarm_description   = "MCP service CPU utilization is above ${var.cpu_threshold}%"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  dimensions = {
+    ClusterName = var.cluster_name
+    ServiceName = var.mcp_service_name
+  }
+
+  tags = {
+    Project     = "wealthwise"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "agentic_ai_high_cpu" {
+  alarm_name          = "${var.project_name}-${var.environment}-agentic-ai-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 3
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = var.cpu_threshold
+  alarm_description   = "Agentic AI service CPU utilization is above ${var.cpu_threshold}%"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  dimensions = {
+    ClusterName = var.cluster_name
+    ServiceName = var.agentic_ai_service_name
+  }
+
+  tags = {
+    Project     = "wealthwise"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "mcp_unhealthy_hosts" {
+  alarm_name          = "${var.project_name}-${var.environment}-mcp-unhealthy-hosts"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 0
+  alarm_description   = "MCP target group has unhealthy hosts"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  dimensions = {
+    TargetGroup  = var.mcp_target_group_arn_suffix
+    LoadBalancer = var.alb_arn_suffix
+  }
+
+  tags = {
+    Project     = "wealthwise"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "agentic_ai_unhealthy_hosts" {
+  alarm_name          = "${var.project_name}-${var.environment}-agentic-ai-unhealthy-hosts"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 0
+  alarm_description   = "Agentic AI target group has unhealthy hosts"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  dimensions = {
+    TargetGroup  = var.agentic_ai_target_group_arn_suffix
+    LoadBalancer = var.alb_arn_suffix
   }
 
   tags = {

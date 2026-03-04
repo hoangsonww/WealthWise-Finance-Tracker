@@ -24,6 +24,7 @@ secrets:
   jwtRefreshSecret: ""
   nextauthSecret: ""
   mongodbUri: ""
+  anthropicApiKey: ""
 
 config:
   nodeEnv: "production"
@@ -99,6 +100,90 @@ web:
     enabled: true
     minReplicas: 2
     maxReplicas: 8
+    targetCPUUtilization: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfied: DoNotSchedule
+
+  extraEnv: []
+
+# ---- MCP Server ----
+
+mcp:
+  enabled: true
+  replicaCount: 2
+  port: 5100
+
+  image:
+    repository: wealthwise-mcp
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilization: 70
+
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfied: DoNotSchedule
+
+  extraEnv: []
+
+# ---- Agentic AI ----
+
+agenticAi:
+  enabled: true
+  replicaCount: 2
+  port: 5200
+
+  image:
+    repository: wealthwise-agentic-ai
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+
+  mcpServerUrl: ""
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
     targetCPUUtilization: 70
 
   pdb:

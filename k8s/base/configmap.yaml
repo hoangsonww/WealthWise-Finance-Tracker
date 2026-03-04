@@ -5,5 +5,8 @@ metadata:
   namespace: wealthwise
 data:
   API_PORT: "4000"
+  MCP_PORT: "5100"
+  MCP_TRANSPORT: "sse"
+  AGENT_PORT: "5200"
   NODE_ENV: "production"
   NEXT_TELEMETRY_DISABLED: "1"

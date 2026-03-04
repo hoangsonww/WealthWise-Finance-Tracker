@@ -1,7 +1,7 @@
 variable "repository_names" {
   description = "List of ECR repository names to create"
   type        = list(string)
-  default     = ["wealthwise-api", "wealthwise-web"]
+  default     = ["wealthwise-api", "wealthwise-web", "wealthwise-mcp", "wealthwise-agentic-ai"]
 }
 
 variable "scan_on_push" {

@@ -1,0 +1,14 @@
+{{- if and .Values.agenticAi.enabled .Values.agenticAi.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "wealthwise.fullname" . }}-agentic-ai-pdb
+  namespace: {{ include "wealthwise.namespace" . }}
+  labels:
+    {{- include "wealthwise.agenticAi.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.agenticAi.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "wealthwise.agenticAi.selectorLabels" . | nindent 6 }}
+{{- end }}

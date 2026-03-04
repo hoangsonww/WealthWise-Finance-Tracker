@@ -10,4 +10,7 @@ data:
   API_PORT: {{ .Values.api.port | quote }}
   NODE_ENV: {{ .Values.config.nodeEnv | quote }}
   NEXT_TELEMETRY_DISABLED: "1"
+  MCP_PORT: {{ .Values.mcp.port | quote }}
+  MCP_TRANSPORT: "sse"
+  AGENT_PORT: {{ .Values.agenticAi.port | quote }}
 {{- end }}

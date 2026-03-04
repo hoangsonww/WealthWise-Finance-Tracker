@@ -9,6 +9,8 @@ resources:
 patches:
   - path: api-deployment-patch.yaml
   - path: web-deployment-patch.yaml
+  - path: mcp-deployment-patch.yaml
+  - path: agentic-ai-deployment-patch.yaml
   - target:
       kind: Ingress
       name: wealthwise-ingress

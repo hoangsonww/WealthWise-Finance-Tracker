@@ -27,6 +27,20 @@ spec:
                 name: wealthwise-api
                 port:
                   number: 4000
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: wealthwise-mcp
+                port:
+                  number: 5100
+          - path: /agent
+            pathType: Prefix
+            backend:
+              service:
+                name: wealthwise-agentic-ai
+                port:
+                  number: 5200
           - path: /
             pathType: Prefix
             backend:

@@ -80,6 +80,38 @@ variable "web_target_group_arn" {
   type        = string
 }
 
+variable "mcp_image" {
+  description = "Docker image for the MCP service"
+  type        = string
+}
+
+variable "agentic_ai_image" {
+  description = "Docker image for the agentic AI service"
+  type        = string
+}
+
+variable "mcp_port" {
+  description = "Port the MCP container listens on"
+  type        = number
+  default     = 5100
+}
+
+variable "agentic_ai_port" {
+  description = "Port the agentic AI container listens on"
+  type        = number
+  default     = 5200
+}
+
+variable "mcp_target_group_arn" {
+  description = "ARN of the MCP ALB target group"
+  type        = string
+}
+
+variable "agentic_ai_target_group_arn" {
+  description = "ARN of the agentic AI ALB target group"
+  type        = string
+}
+
 variable "execution_role_arn" {
   description = "ARN of the ECS task execution IAM role"
   type        = string

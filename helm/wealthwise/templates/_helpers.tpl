@@ -64,6 +64,30 @@ app.kubernetes.io/component: web
 {{ include "wealthwise.web.selectorLabels" . }}
 {{- end }}
 
+{{/* ---- MCP labels ---- */}}
+
+{{- define "wealthwise.mcp.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "wealthwise.fullname" . }}-mcp
+app.kubernetes.io/component: mcp
+{{- end }}
+
+{{- define "wealthwise.mcp.labels" -}}
+{{ include "wealthwise.commonLabels" . }}
+{{ include "wealthwise.mcp.selectorLabels" . }}
+{{- end }}
+
+{{/* ---- Agentic AI labels ---- */}}
+
+{{- define "wealthwise.agenticAi.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "wealthwise.fullname" . }}-agentic-ai
+app.kubernetes.io/component: agentic-ai
+{{- end }}
+
+{{- define "wealthwise.agenticAi.labels" -}}
+{{ include "wealthwise.commonLabels" . }}
+{{ include "wealthwise.agenticAi.selectorLabels" . }}
+{{- end }}
+
 {{/* ---- Secret name (supports existingSecret) ---- */}}
 
 {{- define "wealthwise.secretName" -}}

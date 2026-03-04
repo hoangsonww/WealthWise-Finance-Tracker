@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wealthwise-mcp
+  namespace: wealthwise
+  labels:
+    app.kubernetes.io/name: wealthwise-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5100
+      targetPort: 5100
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: wealthwise-mcp
