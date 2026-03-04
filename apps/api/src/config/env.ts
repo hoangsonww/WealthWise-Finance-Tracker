@@ -8,7 +8,6 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
   API_PORT: z.coerce.number().int().positive().default(4000),
-  CORS_ORIGIN: z.string().default("http://localhost:3000"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

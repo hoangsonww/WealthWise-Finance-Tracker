@@ -1,12 +1,14 @@
 import cors from "cors";
-import { env } from "../config/env";
 
 /**
  * CORS configuration.
- * Allows the configured origin (from env) and common HTTP methods/headers.
+ * Reflects any request origin so the API accepts all callers, including
+ * credentialed browser requests.
  */
 export const corsMiddleware = cors({
-  origin: env.CORS_ORIGIN,
+  origin: (_origin, callback) => {
+    callback(null, true);
+  },
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

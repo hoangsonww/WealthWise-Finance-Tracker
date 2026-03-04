@@ -42,7 +42,6 @@ Create a `.env` file in the repo root (see `.env.example`):
 | `JWT_SECRET` | Yes | -- | Access token signing key (min 32 chars) |
 | `JWT_REFRESH_SECRET` | Yes | -- | Refresh token signing key (min 32 chars) |
 | `API_PORT` | No | `4000` | Port the API listens on |
-| `CORS_ORIGIN` | No | `http://localhost:3000` | Allowed CORS origin |
 | `NODE_ENV` | No | `development` | `development`, `production`, or `test` |
 
 Environment variables are validated at startup with Zod. The process exits immediately if any required variable is missing or invalid.
@@ -277,7 +276,7 @@ Middleware is applied in this order:
 
 ```
 Request
-  |-> CORS (configurable origin, credentials enabled)
+  |-> CORS (all origins allowed, credentials enabled)
   |-> Morgan (HTTP request logging: "dev" in development, "combined" in production)
   |-> express.json (10 MB limit)
   |-> express.urlencoded (extended: true)
