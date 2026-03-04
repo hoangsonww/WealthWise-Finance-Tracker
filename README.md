@@ -47,7 +47,9 @@
 [![Argo CD](https://img.shields.io/badge/ArgoCD-0.24-ef4444?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Argo Rollouts](https://img.shields.io/badge/Argo_Rollouts-1.3-ef4444?logo=argo&logoColor=white)](https://argo-rollouts.readthedocs.io/)
 
-A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, budgets, goals, recurring bills, and analytics - all with dark mode, CSV import, and a responsive design.
+A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, budgets, goals, recurring bills, and analytics - all with dark mode, CSV import, and a responsive design. 
+
+WealthWise also includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. The project is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
 
 ---
 
