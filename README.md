@@ -57,7 +57,7 @@ A full-stack personal finance application built with a **Turborepo monorepo**, f
   - [1. Clone and install](#1-clone-and-install)
   - [2. Configure environment](#2-configure-environment)
   - [3. Start MongoDB](#3-start-mongodb)
-  - [4. Seed default data](#4-seed-default-data)
+  - [4.  default data](#4--default-data)
   - [5. Start development](#5-start-development)
 - [Scripts](#scripts)
 - [Testing](#testing)
@@ -225,7 +225,7 @@ wealthwise/
 │   │   │   ├── middleware/     # Auth, CORS, validation, error handling, rate limiting
 │   │   │   ├── models/         # Mongoose schemas (7 models)
 │   │   │   ├── routes/         # Express routers with Swagger JSDoc
-│   │   │   ├── seeds/          # Default categories + demo data
+│   │   │   ├── s/          # Default categories + demo data
 │   │   │   ├── services/       # Business logic layer
 │   │   │   ├── utils/          # ApiError, async handler, pagination
 │   │   │   └── __tests__/      # Vitest + mongodb-memory-server
@@ -341,17 +341,21 @@ docker compose up mongodb -d
 mongod --dbpath /data/db
 ```
 
-### 4. Seed default data
+### 4.  default data
 
 ```bash
-npm run db:seed          # Default categories only
+npm run db:          # Default categories only
 npm run db:seed -- demo  # Full demo dataset
 ```
 
 Or, if you are running the in-memory MongoDB version, run this command **AFTER starting the backend server**: 
 
 ```bash
-curl -X POST http://localhost:4000/api/v1/dev/seed  # adjust the endpoint as needed
+# On Mac/Linux:
+curl -X POST http://localhost:4000/api/v1/dev/seed       # adjust the endpoint as needed
+
+# On Windows:
+curl.exe -X POST http://localhost:4000/api/v1/dev/seed   # adjust the endpoint as needed
 ```
 
 > [!IMPORTANT]
