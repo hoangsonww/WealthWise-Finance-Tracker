@@ -26,12 +26,12 @@ COPY turbo.json ./
 # Copy package files
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/shared-types/ ./packages/shared-types/
 
 # Install all dependencies
 RUN npm ci --workspace=apps/web --workspace=packages/shared-types
 
 # Copy source files
-COPY packages/shared-types/ ./packages/shared-types/
 COPY apps/web/ ./apps/web/
 
 # Build shared-types first
