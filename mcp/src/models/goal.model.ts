@@ -58,7 +58,7 @@ const goalSchema = new Schema<IGoal>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export const Goal = mongoose.model<IGoal>("Goal", goalSchema);

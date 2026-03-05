@@ -33,7 +33,7 @@ async function adjustAccountBalance(
   accountId: string,
   type: string,
   amount: number,
-  operation: "add" | "remove",
+  operation: "add" | "remove"
 ) {
   let delta = 0;
   if (type === "income") {
@@ -46,16 +46,19 @@ async function adjustAccountBalance(
   }
 }
 
-export function registerTransactionTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerTransactionTools(server: McpServer, getUserId: () => string) {
   server.tool(
     "list_transactions",
     "List transactions with filtering, sorting, and pagination",
     {
       page: z.number().int().positive().optional().describe("Page number (default 1)"),
-      limit: z.number().int().positive().max(100).optional().describe("Items per page (default 20)"),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Items per page (default 20)"),
       accountId: z.string().optional().describe("Filter by account ID"),
       categoryId: z.string().optional().describe("Filter by category ID"),
       type: z.enum(["income", "expense", "transfer"]).optional().describe("Filter by type"),
@@ -109,7 +112,7 @@ export function registerTransactionTools(
           totalPages: Math.ceil(total / limit),
         },
       });
-    },
+    }
   );
 
   server.tool(
@@ -118,7 +121,13 @@ export function registerTransactionTools(
     {
       query: z.string().describe("Search query for description"),
       page: z.number().int().positive().optional().describe("Page number (default 1)"),
-      limit: z.number().int().positive().max(100).optional().describe("Items per page (default 20)"),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Items per page (default 20)"),
     },
     async (params) => {
       const userId = getUserId();
@@ -145,7 +154,7 @@ export function registerTransactionTools(
           totalPages: Math.ceil(total / limit),
         },
       });
-    },
+    }
   );
 
   server.tool(
@@ -186,15 +195,10 @@ export function registerTransactionTools(
         tags: params.tags ?? [],
       });
 
-      await adjustAccountBalance(
-        params.accountId,
-        params.type,
-        params.amount,
-        "add",
-      );
+      await adjustAccountBalance(params.accountId, params.type, params.amount, "add");
 
       return textResult(formatTransaction(transaction));
-    },
+    }
   );
 
   server.tool(
@@ -207,10 +211,9 @@ export function registerTransactionTools(
         _id: transactionId,
         userId,
       });
-      if (!transaction)
-        throw McpToolError.notFound("Transaction not found");
+      if (!transaction) throw McpToolError.notFound("Transaction not found");
       return textResult(formatTransaction(transaction));
-    },
+    }
   );
 
   server.tool(
@@ -235,8 +238,7 @@ export function registerTransactionTools(
         _id: transactionId,
         userId,
       });
-      if (!existing)
-        throw McpToolError.notFound("Transaction not found");
+      if (!existing) throw McpToolError.notFound("Transaction not found");
 
       if (data.accountId && data.accountId !== existing.accountId.toString()) {
         const newAccount = await Account.findOne({
@@ -250,7 +252,7 @@ export function registerTransactionTools(
         existing.accountId.toString(),
         existing.type,
         existing.amount,
-        "remove",
+        "remove"
       );
 
       const updateData: Record<string, unknown> = { ...data };
@@ -259,20 +261,14 @@ export function registerTransactionTools(
       const updated = await Transaction.findByIdAndUpdate(
         transactionId,
         { $set: updateData },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       );
-      if (!updated)
-        throw McpToolError.notFound("Transaction not found");
+      if (!updated) throw McpToolError.notFound("Transaction not found");
 
-      await adjustAccountBalance(
-        updated.accountId.toString(),
-        updated.type,
-        updated.amount,
-        "add",
-      );
+      await adjustAccountBalance(updated.accountId.toString(), updated.type, updated.amount, "add");
 
       return textResult(formatTransaction(updated));
-    },
+    }
   );
 
   server.tool(
@@ -285,17 +281,16 @@ export function registerTransactionTools(
         _id: transactionId,
         userId,
       });
-      if (!transaction)
-        throw McpToolError.notFound("Transaction not found");
+      if (!transaction) throw McpToolError.notFound("Transaction not found");
 
       await adjustAccountBalance(
         transaction.accountId.toString(),
         transaction.type,
         transaction.amount,
-        "remove",
+        "remove"
       );
 
       return textResult(formatTransaction(transaction));
-    },
+    }
   );
 }

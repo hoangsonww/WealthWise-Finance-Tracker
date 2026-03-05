@@ -7,10 +7,7 @@ import { registerCategoryTools } from "./categories.tool";
 import { registerRecurringTools } from "./recurring.tool";
 import { registerAnalyticsTools } from "./analytics.tool";
 
-export function registerAllTools(
-  server: McpServer,
-  getUserId: () => string,
-): void {
+export function registerAllTools(server: McpServer, getUserId: () => string): void {
   registerAccountTools(server, getUserId);
   registerTransactionTools(server, getUserId);
   registerBudgetTools(server, getUserId);

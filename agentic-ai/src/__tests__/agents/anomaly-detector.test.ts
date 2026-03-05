@@ -45,28 +45,33 @@ describe("AnomalyDetectorAgent", () => {
   it("should return anomaly analysis after tool calls", async () => {
     (anthropic.messages.create as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
-        content: [
-          { type: "tool_use", id: "t1", name: "list_transactions", input: { days: 90 } },
-        ],
+        content: [{ type: "tool_use", id: "t1", name: "list_transactions", input: { days: 90 } }],
         stop_reason: "tool_use",
         usage: { input_tokens: 60, output_tokens: 30 },
       })
       .mockResolvedValueOnce({
-        content: [
-          { type: "tool_use", id: "t2", name: "spending_by_category", input: {} },
-        ],
+        content: [{ type: "tool_use", id: "t2", name: "spending_by_category", input: {} }],
         stop_reason: "tool_use",
         usage: { input_tokens: 100, output_tokens: 30 },
       })
       .mockResolvedValueOnce({
-        content: [{ type: "text", text: "## Anomaly Report\n- WARNING: Dining spending 180% above average" }],
+        content: [
+          {
+            type: "text",
+            text: "## Anomaly Report\n- WARNING: Dining spending 180% above average",
+          },
+        ],
         stop_reason: "end_turn",
         usage: { input_tokens: 150, output_tokens: 80 },
       });
 
     (mcpClient.callTool as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ content: [{ type: "text", text: '[{"amount": 500, "category": "Dining"}]' }] })
-      .mockResolvedValueOnce({ content: [{ type: "text", text: '{"Dining": 1500, "Groceries": 400}' }] });
+      .mockResolvedValueOnce({
+        content: [{ type: "text", text: '[{"amount": 500, "category": "Dining"}]' }],
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: "text", text: '{"Dining": 1500, "Groceries": 400}' }],
+      });
 
     const result = await agent.run("Check for anomalies", tools, mcpClient, []);
 

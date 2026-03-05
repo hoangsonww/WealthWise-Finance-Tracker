@@ -65,7 +65,7 @@ describe("goals tools", () => {
       const updated = await Goal.findOneAndUpdate(
         { _id: goal._id, userId },
         { $set: { name: "New Goal", targetAmount: 2000 } },
-        { new: true },
+        { new: true }
       );
 
       expect(updated!.name).toBe("New Goal");
@@ -82,7 +82,7 @@ describe("goals tools", () => {
       const updated = await Goal.findOneAndUpdate(
         { _id: goal._id, userId },
         { $set: { name: "Hacked" } },
-        { new: true },
+        { new: true }
       );
       expect(updated).toBeNull();
     });

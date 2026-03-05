@@ -27,7 +27,9 @@ describe("OrchestratorAgent", () => {
   describe("route", () => {
     it("should route financial health requests to financial-advisor", async () => {
       (anthropic.messages.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        content: [{ type: "text", text: '{"agent": "financial-advisor", "reason": "health assessment"}' }],
+        content: [
+          { type: "text", text: '{"agent": "financial-advisor", "reason": "health assessment"}' },
+        ],
         usage: { input_tokens: 10, output_tokens: 20 },
       });
 
@@ -37,7 +39,9 @@ describe("OrchestratorAgent", () => {
 
     it("should route anomaly requests to anomaly-detector", async () => {
       (anthropic.messages.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        content: [{ type: "text", text: '{"agent": "anomaly-detector", "reason": "unusual spending"}' }],
+        content: [
+          { type: "text", text: '{"agent": "anomaly-detector", "reason": "unusual spending"}' },
+        ],
         usage: { input_tokens: 10, output_tokens: 20 },
       });
 
@@ -47,7 +51,9 @@ describe("OrchestratorAgent", () => {
 
     it("should route budget requests to budget-optimizer", async () => {
       (anthropic.messages.create as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        content: [{ type: "text", text: '{"agent": "budget-optimizer", "reason": "budget review"}' }],
+        content: [
+          { type: "text", text: '{"agent": "budget-optimizer", "reason": "budget review"}' },
+        ],
         usage: { input_tokens: 10, output_tokens: 20 },
       });
 

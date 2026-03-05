@@ -171,12 +171,7 @@ describe("Agent Routes", () => {
 
   describe("auth middleware", () => {
     it("should reject requests without auth token", async () => {
-      const result = await makeRequest(
-        app,
-        "POST",
-        "/api/v1/agent/chat",
-        { message: "test" }
-      );
+      const result = await makeRequest(app, "POST", "/api/v1/agent/chat", { message: "test" });
       expect(result.status).toBe(401);
     });
 
@@ -195,13 +190,7 @@ describe("Agent Routes", () => {
   describe("POST /api/v1/agent/chat", () => {
     it("should reject missing message", async () => {
       const token = makeToken("user-1");
-      const result = await makeRequest(
-        app,
-        "POST",
-        "/api/v1/agent/chat",
-        {},
-        token
-      );
+      const result = await makeRequest(app, "POST", "/api/v1/agent/chat", {}, token);
       expect(result.status).toBe(400);
       expect((result.body as { success: boolean }).success).toBe(false);
     });

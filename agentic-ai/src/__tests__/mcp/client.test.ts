@@ -6,8 +6,16 @@ vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
     connect: vi.fn().mockResolvedValue(undefined),
     listTools: vi.fn().mockResolvedValue({
       tools: [
-        { name: "monthly_summary", description: "Get monthly summary", inputSchema: { type: "object", properties: { month: { type: "string" } } } },
-        { name: "list_transactions", description: "List transactions", inputSchema: { type: "object", properties: {} } },
+        {
+          name: "monthly_summary",
+          description: "Get monthly summary",
+          inputSchema: { type: "object", properties: { month: { type: "string" } } },
+        },
+        {
+          name: "list_transactions",
+          description: "List transactions",
+          inputSchema: { type: "object", properties: {} },
+        },
       ],
     }),
     callTool: vi.fn().mockResolvedValue({

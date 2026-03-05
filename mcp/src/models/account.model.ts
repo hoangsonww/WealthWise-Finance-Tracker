@@ -54,7 +54,7 @@ const accountSchema = new Schema<IAccount>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 accountSchema.index({ userId: 1, isArchived: 1 });

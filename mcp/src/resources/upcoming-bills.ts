@@ -1,10 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { RecurringRule } from "../models/recurring-rule.model";
 
-export function registerUpcomingBillsResource(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerUpcomingBillsResource(server: McpServer, getUserId: () => string) {
   server.resource(
     "upcoming-bills",
     "wealthwise://upcoming-bills",
@@ -41,6 +38,6 @@ export function registerUpcomingBillsResource(
           },
         ],
       };
-    },
+    }
   );
 }

@@ -93,7 +93,7 @@ describe("budgets tools", () => {
       const updated = await Budget.findOneAndUpdate(
         { _id: budget._id, userId },
         { $set: { amount: 600, period: "weekly" } },
-        { new: true },
+        { new: true }
       );
 
       expect(updated!.amount).toBe(600);
@@ -112,7 +112,7 @@ describe("budgets tools", () => {
       const updated = await Budget.findOneAndUpdate(
         { _id: budget._id, userId },
         { $set: { amount: 9999 } },
-        { new: true },
+        { new: true }
       );
       expect(updated).toBeNull();
     });

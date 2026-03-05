@@ -14,9 +14,7 @@ export function resolveUserId(transport: string, token?: string): string {
   if (transport === "stdio") {
     const userId = process.env.MCP_USER_ID;
     if (!userId) {
-      throw McpToolError.unauthorized(
-        "MCP_USER_ID must be set when using stdio transport"
-      );
+      throw McpToolError.unauthorized("MCP_USER_ID must be set when using stdio transport");
     }
     return userId;
   }

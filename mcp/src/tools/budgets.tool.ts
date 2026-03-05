@@ -36,20 +36,12 @@ function getPeriodStartDate(period: "monthly" | "weekly"): Date {
   return monday;
 }
 
-export function registerBudgetTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
-  server.tool(
-    "list_budgets",
-    "List all budgets for the user",
-    {},
-    async () => {
-      const userId = getUserId();
-      const budgets = await Budget.find({ userId }).sort({ createdAt: -1 });
-      return textResult(budgets.map(formatBudget));
-    },
-  );
+export function registerBudgetTools(server: McpServer, getUserId: () => string) {
+  server.tool("list_budgets", "List all budgets for the user", {}, async () => {
+    const userId = getUserId();
+    const budgets = await Budget.find({ userId }).sort({ createdAt: -1 });
+    return textResult(budgets.map(formatBudget));
+  });
 
   server.tool(
     "create_budget",
@@ -75,7 +67,7 @@ export function registerBudgetTools(
         alertThreshold: params.alertThreshold,
       });
       return textResult(formatBudget(budget));
-    },
+    }
   );
 
   server.tool(
@@ -85,16 +77,8 @@ export function registerBudgetTools(
       budgetId: z.string().describe("The budget ID to update"),
       categoryId: z.string().optional().describe("New category ID"),
       amount: z.number().positive().optional().describe("New amount"),
-      period: z
-        .enum(["monthly", "weekly"])
-        .optional()
-        .describe("New period"),
-      alertThreshold: z
-        .number()
-        .min(0)
-        .max(1)
-        .optional()
-        .describe("New alert threshold"),
+      period: z.enum(["monthly", "weekly"]).optional().describe("New period"),
+      alertThreshold: z.number().min(0).max(1).optional().describe("New alert threshold"),
     },
     async ({ budgetId, ...data }) => {
       const userId = getUserId();
@@ -102,17 +86,16 @@ export function registerBudgetTools(
       if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
       if (data.amount !== undefined) updateData.amount = data.amount;
       if (data.period !== undefined) updateData.period = data.period;
-      if (data.alertThreshold !== undefined)
-        updateData.alertThreshold = data.alertThreshold;
+      if (data.alertThreshold !== undefined) updateData.alertThreshold = data.alertThreshold;
 
       const budget = await Budget.findOneAndUpdate(
         { _id: budgetId, userId },
         { $set: updateData },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       );
       if (!budget) throw McpToolError.notFound("Budget not found");
       return textResult(formatBudget(budget));
-    },
+    }
   );
 
   server.tool(
@@ -146,8 +129,7 @@ export function registerBudgetTools(
           ]);
 
           const spent = result.length > 0 ? result[0].totalSpent : 0;
-          const percentage =
-            budget.amount > 0 ? spent / budget.amount : 0;
+          const percentage = budget.amount > 0 ? spent / budget.amount : 0;
 
           let status: "under_budget" | "warning" | "over_budget";
           if (percentage >= 1) {
@@ -165,10 +147,10 @@ export function registerBudgetTools(
             percentage: Math.round(percentage * 10000) / 10000,
             status,
           };
-        }),
+        })
       );
 
       return textResult(summaries);
-    },
+    }
   );
 }

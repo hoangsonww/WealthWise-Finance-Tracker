@@ -7,7 +7,7 @@ import { logger } from "../utils/logger";
 export function startSseTransport(
   server: McpServer,
   port: number,
-  setUserId: (id: string) => void,
+  setUserId: (id: string) => void
 ): void {
   const app = express();
 
@@ -15,7 +15,7 @@ export function startSseTransport(
     res.header("Access-Control-Allow-Origin", "*");
     res.header(
       "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization"
     );
     res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     if (_req.method === "OPTIONS") {
@@ -34,9 +34,7 @@ export function startSseTransport(
   app.get("/sse", (req, res) => {
     try {
       const authHeader = req.headers.authorization;
-      const token = authHeader?.startsWith("Bearer ")
-        ? authHeader.slice(7)
-        : undefined;
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
 
       const userId = resolveUserId("sse", token);
       setUserId(userId);

@@ -144,46 +144,50 @@ export function createAgentRoutes(
     }
   });
 
-  router.get("/insights/summary", insightsRateLimit, async (req: AuthenticatedRequest, res: Response) => {
-    try {
-      const userId = req.userId!;
-      const userToken = req.userToken!;
+  router.get(
+    "/insights/summary",
+    insightsRateLimit,
+    async (req: AuthenticatedRequest, res: Response) => {
+      try {
+        const userId = req.userId!;
+        const userToken = req.userToken!;
 
-      const mcpClient = await mcpManager.createClient(userToken);
-      const mcpTools = await mcpManager.listTools(mcpClient);
-      const claudeTools = mcpToolsToClaudeTools(mcpTools);
+        const mcpClient = await mcpManager.createClient(userToken);
+        const mcpTools = await mcpManager.listTools(mcpClient);
+        const claudeTools = mcpToolsToClaudeTools(mcpTools);
 
-      const agent = agents["financial-advisor"];
-      const result = await agent.run(
-        "Give me a brief financial summary: health score, top concern, and one actionable recommendation. Keep it under 200 words.",
-        claudeTools,
-        mcpClient,
-        []
-      );
+        const agent = agents["financial-advisor"];
+        const result = await agent.run(
+          "Give me a brief financial summary: health score, top concern, and one actionable recommendation. Keep it under 200 words.",
+          claudeTools,
+          mcpClient,
+          []
+        );
 
-      costTracker.trackUsage(
-        userId,
-        result.usage.inputTokens,
-        result.usage.outputTokens,
-        "claude-sonnet-4-20250514"
-      );
+        costTracker.trackUsage(
+          userId,
+          result.usage.inputTokens,
+          result.usage.outputTokens,
+          "claude-sonnet-4-20250514"
+        );
 
-      res.json({
-        success: true,
-        data: {
-          response: result.response,
-          agent: "financial-advisor",
-          usage: result.usage,
-        },
-      });
-    } catch (error) {
-      logger.error({ error }, "Summary endpoint error");
-      res.status(500).json({
-        success: false,
-        error: { code: "INTERNAL_ERROR", message: "Failed to generate summary" },
-      });
+        res.json({
+          success: true,
+          data: {
+            response: result.response,
+            agent: "financial-advisor",
+            usage: result.usage,
+          },
+        });
+      } catch (error) {
+        logger.error({ error }, "Summary endpoint error");
+        res.status(500).json({
+          success: false,
+          error: { code: "INTERNAL_ERROR", message: "Failed to generate summary" },
+        });
+      }
     }
-  });
+  );
 
   router.delete("/conversations/:id", (req: AuthenticatedRequest, res: Response) => {
     const userId = req.userId!;

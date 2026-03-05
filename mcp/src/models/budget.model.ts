@@ -48,7 +48,7 @@ const budgetSchema = new Schema<IBudget>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 budgetSchema.index({ userId: 1, categoryId: 1 });

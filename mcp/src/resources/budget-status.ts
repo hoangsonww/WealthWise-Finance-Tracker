@@ -16,10 +16,7 @@ function getPeriodStartDate(period: "monthly" | "weekly"): Date {
   return monday;
 }
 
-export function registerBudgetStatusResource(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerBudgetStatusResource(server: McpServer, getUserId: () => string) {
   server.resource(
     "budget-status",
     "wealthwise://budget-status",
@@ -51,8 +48,7 @@ export function registerBudgetStatusResource(
           ]);
 
           const spent = result.length > 0 ? result[0].totalSpent : 0;
-          const percentage =
-            budget.amount > 0 ? spent / budget.amount : 0;
+          const percentage = budget.amount > 0 ? spent / budget.amount : 0;
 
           let status: string;
           if (percentage >= 1) status = "over_budget";
@@ -69,7 +65,7 @@ export function registerBudgetStatusResource(
             percentage: Math.round(percentage * 10000) / 10000,
             status,
           };
-        }),
+        })
       );
 
       return {
@@ -81,6 +77,6 @@ export function registerBudgetStatusResource(
           },
         ],
       };
-    },
+    }
   );
 }

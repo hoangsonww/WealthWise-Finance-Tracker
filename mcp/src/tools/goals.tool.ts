@@ -23,20 +23,12 @@ function textResult(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
-export function registerGoalTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
-  server.tool(
-    "list_goals",
-    "List all savings goals for the user",
-    {},
-    async () => {
-      const userId = getUserId();
-      const goals = await Goal.find({ userId }).sort({ createdAt: -1 });
-      return textResult(goals.map(formatGoal));
-    },
-  );
+export function registerGoalTools(server: McpServer, getUserId: () => string) {
+  server.tool("list_goals", "List all savings goals for the user", {}, async () => {
+    const userId = getUserId();
+    const goals = await Goal.find({ userId }).sort({ createdAt: -1 });
+    return textResult(goals.map(formatGoal));
+  });
 
   server.tool(
     "create_goal",
@@ -44,15 +36,8 @@ export function registerGoalTools(
     {
       name: z.string().max(50).describe("Goal name"),
       targetAmount: z.number().positive().describe("Target amount"),
-      currentAmount: z
-        .number()
-        .min(0)
-        .optional()
-        .describe("Current amount (default 0)"),
-      deadline: z
-        .string()
-        .optional()
-        .describe("Deadline date (ISO string)"),
+      currentAmount: z.number().min(0).optional().describe("Current amount (default 0)"),
+      deadline: z.string().optional().describe("Deadline date (ISO string)"),
       color: z.string().optional().describe("Color hex code"),
       icon: z.string().optional().describe("Emoji icon"),
     },
@@ -68,7 +53,7 @@ export function registerGoalTools(
         icon: params.icon,
       });
       return textResult(formatGoal(goal));
-    },
+    }
   );
 
   server.tool(
@@ -78,16 +63,8 @@ export function registerGoalTools(
       goalId: z.string().describe("The goal ID to update"),
       name: z.string().max(50).optional().describe("New name"),
       targetAmount: z.number().positive().optional().describe("New target"),
-      currentAmount: z
-        .number()
-        .min(0)
-        .optional()
-        .describe("New current amount"),
-      deadline: z
-        .string()
-        .nullable()
-        .optional()
-        .describe("New deadline (ISO string or null)"),
+      currentAmount: z.number().min(0).optional().describe("New current amount"),
+      deadline: z.string().nullable().optional().describe("New deadline (ISO string or null)"),
       color: z.string().optional().describe("New color"),
       icon: z.string().optional().describe("New icon"),
     },
@@ -95,19 +72,17 @@ export function registerGoalTools(
       const userId = getUserId();
       const updateData: Record<string, unknown> = { ...data };
       if (data.deadline !== undefined) {
-        updateData.deadline = data.deadline
-          ? new Date(data.deadline)
-          : null;
+        updateData.deadline = data.deadline ? new Date(data.deadline) : null;
       }
 
       const goal = await Goal.findOneAndUpdate(
         { _id: goalId, userId },
         { $set: updateData },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       );
       if (!goal) throw McpToolError.notFound("Goal not found");
       return textResult(formatGoal(goal));
-    },
+    }
   );
 
   server.tool(
@@ -119,7 +94,7 @@ export function registerGoalTools(
       const goal = await Goal.findOneAndDelete({ _id: goalId, userId });
       if (!goal) throw McpToolError.notFound("Goal not found");
       return textResult(formatGoal(goal));
-    },
+    }
   );
 
   server.tool(
@@ -144,6 +119,6 @@ export function registerGoalTools(
       await goal.save();
 
       return textResult(formatGoal(goal));
-    },
+    }
   );
 }

@@ -9,12 +9,7 @@ interface UsageRecord {
 class CostTracker {
   private usage: Map<string, UsageRecord> = new Map();
 
-  trackUsage(
-    userId: string,
-    inputTokens: number,
-    outputTokens: number,
-    model: string
-  ): void {
+  trackUsage(userId: string, inputTokens: number, outputTokens: number, model: string): void {
     const existing = this.usage.get(userId);
 
     if (existing) {

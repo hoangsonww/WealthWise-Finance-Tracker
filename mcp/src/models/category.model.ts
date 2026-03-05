@@ -47,7 +47,7 @@ const categorySchema = new Schema<ICategory>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 categorySchema.index({ userId: 1, type: 1 });

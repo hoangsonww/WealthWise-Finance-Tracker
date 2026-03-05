@@ -52,22 +52,14 @@ function textResult(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
-export function registerRecurringTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
-  server.tool(
-    "list_recurring",
-    "List all recurring rules for the user",
-    {},
-    async () => {
-      const userId = getUserId();
-      const rules = await RecurringRule.find({ userId }).sort({
-        nextDueDate: 1,
-      });
-      return textResult(rules.map(formatRule));
-    },
-  );
+export function registerRecurringTools(server: McpServer, getUserId: () => string) {
+  server.tool("list_recurring", "List all recurring rules for the user", {}, async () => {
+    const userId = getUserId();
+    const rules = await RecurringRule.find({ userId }).sort({
+      nextDueDate: 1,
+    });
+    return textResult(rules.map(formatRule));
+  });
 
   server.tool(
     "create_recurring",
@@ -82,10 +74,7 @@ export function registerRecurringTools(
         .enum(["daily", "weekly", "biweekly", "monthly", "yearly"])
         .describe("Recurrence frequency"),
       startDate: z.string().describe("Start date (ISO string)"),
-      endDate: z
-        .string()
-        .optional()
-        .describe("End date (ISO string, optional)"),
+      endDate: z.string().optional().describe("End date (ISO string, optional)"),
     },
     async (params) => {
       const userId = getUserId();
@@ -109,7 +98,7 @@ export function registerRecurringTools(
       });
 
       return textResult(formatRule(rule));
-    },
+    }
   );
 
   server.tool(
@@ -129,7 +118,7 @@ export function registerRecurringTools(
       }).sort({ nextDueDate: 1 });
 
       return textResult(rules.map(formatRule));
-    },
+    }
   );
 
   server.tool(
@@ -142,9 +131,7 @@ export function registerRecurringTools(
       if (!rule) throw McpToolError.notFound("Recurring rule not found");
 
       if (!rule.isActive) {
-        throw McpToolError.badRequest(
-          "This recurring rule is no longer active",
-        );
+        throw McpToolError.badRequest("This recurring rule is no longer active");
       }
 
       const account = await Account.findOne({
@@ -152,9 +139,7 @@ export function registerRecurringTools(
         userId,
       });
       if (!account) {
-        throw McpToolError.notFound(
-          "The account associated with this rule was not found",
-        );
+        throw McpToolError.notFound("The account associated with this rule was not found");
       }
 
       const transaction = await Transaction.create({
@@ -171,8 +156,7 @@ export function registerRecurringTools(
         tags: [],
       });
 
-      const balanceDelta =
-        rule.type === "income" ? rule.amount : -rule.amount;
+      const balanceDelta = rule.type === "income" ? rule.amount : -rule.amount;
       await Account.findByIdAndUpdate(rule.accountId, {
         $inc: { balance: balanceDelta },
       });
@@ -193,7 +177,7 @@ export function registerRecurringTools(
           date: transaction.date.toISOString(),
         },
       });
-    },
+    }
   );
 
   server.tool(
@@ -208,6 +192,6 @@ export function registerRecurringTools(
       });
       if (!rule) throw McpToolError.notFound("Recurring rule not found");
       return textResult(formatRule(rule));
-    },
+    }
   );
 }

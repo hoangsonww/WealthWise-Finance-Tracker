@@ -58,14 +58,25 @@ describe("ForecasterAgent", () => {
         usage: { input_tokens: 70, output_tokens: 40 },
       })
       .mockResolvedValueOnce({
-        content: [{ type: "text", text: "## 3-Month Forecast\nProjected savings: $3,600\n## Goal Timeline\nEmergency fund: Complete by August 2024" }],
+        content: [
+          {
+            type: "text",
+            text: "## 3-Month Forecast\nProjected savings: $3,600\n## Goal Timeline\nEmergency fund: Complete by August 2024",
+          },
+        ],
         stop_reason: "end_turn",
         usage: { input_tokens: 160, output_tokens: 100 },
       });
 
     (mcpClient.callTool as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ content: [{ type: "text", text: '{"avgIncome": 5000, "avgExpenses": 3800}' }] })
-      .mockResolvedValueOnce({ content: [{ type: "text", text: '[{"name": "Emergency Fund", "target": 10000, "current": 6400}]' }] });
+      .mockResolvedValueOnce({
+        content: [{ type: "text", text: '{"avgIncome": 5000, "avgExpenses": 3800}' }],
+      })
+      .mockResolvedValueOnce({
+        content: [
+          { type: "text", text: '[{"name": "Emergency Fund", "target": 10000, "current": 6400}]' },
+        ],
+      });
 
     const result = await agent.run("Project my finances", tools, mcpClient, []);
 

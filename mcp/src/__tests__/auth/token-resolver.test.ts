@@ -16,7 +16,7 @@ describe("token-resolver", () => {
       delete process.env.MCP_USER_ID;
       try {
         expect(() => resolveUserId("stdio")).toThrow(
-          "MCP_USER_ID must be set when using stdio transport",
+          "MCP_USER_ID must be set when using stdio transport"
         );
       } finally {
         process.env.MCP_USER_ID = original;
@@ -34,33 +34,25 @@ describe("token-resolver", () => {
     });
 
     it("should throw when no token is provided", () => {
-      expect(() => resolveUserId("sse")).toThrow(
-        "Authorization token is required",
-      );
+      expect(() => resolveUserId("sse")).toThrow("Authorization token is required");
     });
 
     it("should throw for an invalid token", () => {
-      expect(() => resolveUserId("sse", "invalid-token")).toThrow(
-        "Invalid or expired token",
-      );
+      expect(() => resolveUserId("sse", "invalid-token")).toThrow("Invalid or expired token");
     });
 
     it("should throw for an expired token", () => {
       const token = jwt.sign({ userId: "user123" }, JWT_SECRET, {
         expiresIn: "-1h",
       });
-      expect(() => resolveUserId("sse", token)).toThrow(
-        "Invalid or expired token",
-      );
+      expect(() => resolveUserId("sse", token)).toThrow("Invalid or expired token");
     });
 
     it("should throw when token has no userId", () => {
       const token = jwt.sign({ sub: "user123" }, JWT_SECRET, {
         expiresIn: "1h",
       });
-      expect(() => resolveUserId("sse", token)).toThrow(
-        "Invalid token: missing userId",
-      );
+      expect(() => resolveUserId("sse", token)).toThrow("Invalid token: missing userId");
     });
   });
 });

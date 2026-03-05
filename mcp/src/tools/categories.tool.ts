@@ -26,10 +26,7 @@ function formatCategory(cat: {
   };
 }
 
-export function registerCategoryTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerCategoryTools(server: McpServer, getUserId: () => string) {
   server.tool(
     "list_categories",
     "List user categories and system default categories",
@@ -40,7 +37,7 @@ export function registerCategoryTools(
         $or: [{ userId }, { userId: null }],
       }).sort({ type: 1, name: 1 });
       return textResult(categories.map(formatCategory));
-    },
+    }
   );
 
   server.tool(
@@ -63,6 +60,6 @@ export function registerCategoryTools(
         isDefault: false,
       });
       return textResult(formatCategory(category));
-    },
+    }
   );
 }

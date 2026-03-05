@@ -75,12 +75,9 @@ const recurringRuleSchema = new Schema<IRecurringRule>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 recurringRuleSchema.index({ userId: 1, isActive: 1, nextDueDate: 1 });
 
-export const RecurringRule = mongoose.model<IRecurringRule>(
-  "RecurringRule",
-  recurringRuleSchema,
-);
+export const RecurringRule = mongoose.model<IRecurringRule>("RecurringRule", recurringRuleSchema);

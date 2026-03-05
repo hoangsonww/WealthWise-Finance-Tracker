@@ -30,11 +30,41 @@ async function seedTransactions() {
 
   // Create transactions across multiple months
   const txData = [
-    { type: "income", amount: 5000, categoryId: salaryCat._id, date: new Date(2024, 0, 15), description: "Jan Salary" },
-    { type: "expense", amount: 200, categoryId: foodCat._id, date: new Date(2024, 0, 20), description: "Jan Food" },
-    { type: "income", amount: 5000, categoryId: salaryCat._id, date: new Date(2024, 1, 15), description: "Feb Salary" },
-    { type: "expense", amount: 300, categoryId: foodCat._id, date: new Date(2024, 1, 20), description: "Feb Food" },
-    { type: "expense", amount: 150, categoryId: foodCat._id, date: new Date(2024, 1, 25), description: "Feb Food 2" },
+    {
+      type: "income",
+      amount: 5000,
+      categoryId: salaryCat._id,
+      date: new Date(2024, 0, 15),
+      description: "Jan Salary",
+    },
+    {
+      type: "expense",
+      amount: 200,
+      categoryId: foodCat._id,
+      date: new Date(2024, 0, 20),
+      description: "Jan Food",
+    },
+    {
+      type: "income",
+      amount: 5000,
+      categoryId: salaryCat._id,
+      date: new Date(2024, 1, 15),
+      description: "Feb Salary",
+    },
+    {
+      type: "expense",
+      amount: 300,
+      categoryId: foodCat._id,
+      date: new Date(2024, 1, 20),
+      description: "Feb Food",
+    },
+    {
+      type: "expense",
+      amount: 150,
+      categoryId: foodCat._id,
+      date: new Date(2024, 1, 25),
+      description: "Feb Food 2",
+    },
   ];
 
   for (const d of txData) {

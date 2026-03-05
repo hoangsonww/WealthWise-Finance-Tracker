@@ -81,12 +81,7 @@ export class OrchestratorAgent extends BaseAgent {
       };
     }
 
-    const result = await agent.run(
-      userMessage,
-      tools,
-      mcpClient,
-      conversationHistory
-    );
+    const result = await agent.run(userMessage, tools, mcpClient, conversationHistory);
 
     return {
       ...result,

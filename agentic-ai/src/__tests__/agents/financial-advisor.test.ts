@@ -124,9 +124,7 @@ describe("FinancialAdvisorAgent", () => {
   it("should handle tool execution errors gracefully", async () => {
     (anthropic.messages.create as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
-        content: [
-          { type: "tool_use", id: "tool_1", name: "monthly_summary", input: {} },
-        ],
+        content: [{ type: "tool_use", id: "tool_1", name: "monthly_summary", input: {} }],
         stop_reason: "tool_use",
         usage: { input_tokens: 50, output_tokens: 30 },
       })

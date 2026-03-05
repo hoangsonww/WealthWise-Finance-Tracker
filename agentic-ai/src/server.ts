@@ -28,15 +28,21 @@ export function createServer(env: Env) {
 
   app.use(createHealthRoutes());
 
-  app.use("/api/v1/agent", authMiddleware(env.JWT_SECRET), createAgentRoutes(anthropic, mcpManager, conversationManager));
+  app.use(
+    "/api/v1/agent",
+    authMiddleware(env.JWT_SECRET),
+    createAgentRoutes(anthropic, mcpManager, conversationManager)
+  );
 
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error({ error: err.message }, "Unhandled error");
-    res.status(500).json({
-      success: false,
-      error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" },
-    });
-  });
+  app.use(
+    (err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      logger.error({ error: err.message }, "Unhandled error");
+      res.status(500).json({
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred" },
+      });
+    }
+  );
 
   return { app, conversationManager };
 }

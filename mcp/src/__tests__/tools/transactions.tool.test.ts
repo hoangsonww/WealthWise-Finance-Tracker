@@ -43,10 +43,7 @@ describe("transactions tools", () => {
         });
       }
 
-      const transactions = await Transaction.find({ userId })
-        .sort({ date: -1 })
-        .skip(0)
-        .limit(3);
+      const transactions = await Transaction.find({ userId }).sort({ date: -1 }).skip(0).limit(3);
       const total = await Transaction.countDocuments({ userId });
 
       expect(transactions).toHaveLength(3);
@@ -253,7 +250,7 @@ describe("transactions tools", () => {
       const updated = await Transaction.findOneAndUpdate(
         { _id: tx._id, userId },
         { $set: { description: "New", amount: 200 } },
-        { new: true },
+        { new: true }
       );
       expect(updated!.description).toBe("New");
       expect(updated!.amount).toBe(200);

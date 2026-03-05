@@ -41,13 +41,9 @@ export abstract class BaseAgent {
     mcpClient: Client,
     conversationHistory: Message[]
   ): Promise<AgentResponse> {
-    const messages: Message[] = [
-      ...conversationHistory,
-      { role: "user", content: userMessage },
-    ];
+    const messages: Message[] = [...conversationHistory, { role: "user", content: userMessage }];
 
-    const toolCalls: Array<{ name: string; args: Record<string, unknown> }> =
-      [];
+    const toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
 
@@ -64,13 +60,9 @@ export abstract class BaseAgent {
       totalOutputTokens += response.usage.output_tokens;
 
       if (response.stop_reason === "end_turn" || response.stop_reason !== "tool_use") {
-        const textContent = response.content.find(
-          (block: ContentBlock) => block.type === "text"
-        );
+        const textContent = response.content.find((block: ContentBlock) => block.type === "text");
         const text =
-          textContent && textContent.type === "text"
-            ? textContent.text
-            : "No response generated.";
+          textContent && textContent.type === "text" ? textContent.text : "No response generated.";
 
         return {
           response: text,
@@ -122,7 +114,8 @@ export abstract class BaseAgent {
 
     logger.warn({ agent: this.name }, "Hit max tool iterations");
     return {
-      response: "I was unable to complete the analysis within the allowed steps. Please try a more specific request.",
+      response:
+        "I was unable to complete the analysis within the allowed steps. Please try a more specific request.",
       agent: this.name,
       toolCalls,
       usage: {

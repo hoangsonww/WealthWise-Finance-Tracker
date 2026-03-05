@@ -3,10 +3,7 @@ import mongoose from "mongoose";
 import { Account } from "../models/account.model";
 import { Transaction } from "../models/transaction.model";
 
-export function registerFinancialSummaryResource(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerFinancialSummaryResource(server: McpServer, getUserId: () => string) {
   server.resource(
     "financial-summary",
     "wealthwise://summary",
@@ -43,10 +40,7 @@ export function registerFinancialSummaryResource(
       }
 
       const savings = income - expense;
-      const savingsRate =
-        income > 0
-          ? Math.round((savings / income) * 10000) / 100
-          : 0;
+      const savingsRate = income > 0 ? Math.round((savings / income) * 10000) / 100 : 0;
 
       const summary = {
         month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
@@ -73,6 +67,6 @@ export function registerFinancialSummaryResource(
           },
         ],
       };
-    },
+    }
   );
 }

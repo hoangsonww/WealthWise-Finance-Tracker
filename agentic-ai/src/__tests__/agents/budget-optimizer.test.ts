@@ -45,20 +45,25 @@ describe("BudgetOptimizerAgent", () => {
   it("should analyze budgets and suggest optimizations", async () => {
     (anthropic.messages.create as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce({
-        content: [
-          { type: "tool_use", id: "t1", name: "get_budget_summary", input: {} },
-        ],
+        content: [{ type: "tool_use", id: "t1", name: "get_budget_summary", input: {} }],
         stop_reason: "tool_use",
         usage: { input_tokens: 60, output_tokens: 25 },
       })
       .mockResolvedValueOnce({
-        content: [{ type: "text", text: "| Category | Current | Recommended |\n| Dining | $500 | $350 |" }],
+        content: [
+          { type: "text", text: "| Category | Current | Recommended |\n| Dining | $500 | $350 |" },
+        ],
         stop_reason: "end_turn",
         usage: { input_tokens: 120, output_tokens: 80 },
       });
 
     (mcpClient.callTool as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      content: [{ type: "text", text: '{"budgets": [{"category": "Dining", "amount": 500, "spent": 650}]}' }],
+      content: [
+        {
+          type: "text",
+          text: '{"budgets": [{"category": "Dining", "amount": 500, "spent": 650}]}',
+        },
+      ],
     });
 
     const result = await agent.run("Optimize my budget", tools, mcpClient, []);

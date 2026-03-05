@@ -5,9 +5,7 @@ const envSchema = z.object({
   MCP_SERVER_URL: z.string().url("MCP_SERVER_URL must be a valid URL"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   AGENT_PORT: z.coerce.number().default(5200),
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
 export type Env = z.infer<typeof envSchema>;

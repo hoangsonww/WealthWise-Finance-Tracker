@@ -88,7 +88,7 @@ const transactionSchema = new Schema<ITransaction>(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 transactionSchema.index({ userId: 1, date: -1 });
@@ -96,7 +96,4 @@ transactionSchema.index({ userId: 1, categoryId: 1, date: -1 });
 transactionSchema.index({ userId: 1, accountId: 1, date: -1 });
 transactionSchema.index({ description: "text" });
 
-export const Transaction = mongoose.model<ITransaction>(
-  "Transaction",
-  transactionSchema,
-);
+export const Transaction = mongoose.model<ITransaction>("Transaction", transactionSchema);

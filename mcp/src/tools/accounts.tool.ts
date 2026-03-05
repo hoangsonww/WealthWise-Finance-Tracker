@@ -24,10 +24,7 @@ function textResult(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
-export function registerAccountTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerAccountTools(server: McpServer, getUserId: () => string) {
   server.tool(
     "list_accounts",
     "List all non-archived accounts for the user, sorted by creation date descending",
@@ -39,7 +36,7 @@ export function registerAccountTools(
         isArchived: false,
       }).sort({ createdAt: -1 });
       return textResult(accounts.map(formatAccount));
-    },
+    }
   );
 
   server.tool(
@@ -51,7 +48,7 @@ export function registerAccountTools(
       const account = await Account.findOne({ _id: accountId, userId });
       if (!account) throw McpToolError.notFound("Account not found");
       return textResult(formatAccount(account));
-    },
+    }
   );
 
   server.tool(
@@ -63,11 +60,7 @@ export function registerAccountTools(
         .enum(["checking", "savings", "credit_card", "cash", "investment"])
         .describe("Account type"),
       balance: z.number().optional().describe("Initial balance (default 0)"),
-      currency: z
-        .string()
-        .length(3)
-        .optional()
-        .describe("Currency code (default USD)"),
+      currency: z.string().length(3).optional().describe("Currency code (default USD)"),
       color: z.string().optional().describe("Color hex code"),
     },
     async ({ name, type, balance, currency, color }) => {
@@ -81,7 +74,7 @@ export function registerAccountTools(
         color,
       });
       return textResult(formatAccount(account));
-    },
+    }
   );
 
   server.tool(
@@ -95,11 +88,7 @@ export function registerAccountTools(
         .optional()
         .describe("New account type"),
       balance: z.number().optional().describe("New balance"),
-      currency: z
-        .string()
-        .length(3)
-        .optional()
-        .describe("New currency code"),
+      currency: z.string().length(3).optional().describe("New currency code"),
       color: z.string().optional().describe("New color hex code"),
     },
     async ({ accountId, ...data }) => {
@@ -114,11 +103,11 @@ export function registerAccountTools(
       const account = await Account.findOneAndUpdate(
         { _id: accountId, userId },
         { $set: updateData },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true }
       );
       if (!account) throw McpToolError.notFound("Account not found");
       return textResult(formatAccount(account));
-    },
+    }
   );
 
   server.tool(
@@ -130,11 +119,11 @@ export function registerAccountTools(
       const account = await Account.findOneAndUpdate(
         { _id: accountId, userId },
         { $set: { isArchived: true } },
-        { new: true },
+        { new: true }
       );
       if (!account) throw McpToolError.notFound("Account not found");
       return textResult(formatAccount(account));
-    },
+    }
   );
 
   server.tool(
@@ -193,13 +182,7 @@ export function registerAccountTools(
 
       let runningBalance = 0;
       const balanceHistory = history.map(
-        (entry: {
-          year: number;
-          month: number;
-          income: number;
-          expense: number;
-          net: number;
-        }) => {
+        (entry: { year: number; month: number; income: number; expense: number; net: number }) => {
           runningBalance += entry.net;
           return {
             year: entry.year,
@@ -208,10 +191,10 @@ export function registerAccountTools(
             income: entry.income,
             expense: entry.expense,
           };
-        },
+        }
       );
 
       return textResult(balanceHistory);
-    },
+    }
   );
 }

@@ -92,7 +92,7 @@ describe("accounts tools", () => {
       const updated = await Account.findOneAndUpdate(
         { _id: account._id, userId },
         { $set: { name: "Updated", balance: 2000 } },
-        { new: true },
+        { new: true }
       );
       expect(updated!.name).toBe("Updated");
       expect(updated!.balance).toBe(2000);
@@ -105,7 +105,7 @@ describe("accounts tools", () => {
       const updated = await Account.findOneAndUpdate(
         { _id: account._id, userId },
         { $set: { name: "Hacked" } },
-        { new: true },
+        { new: true }
       );
       expect(updated).toBeNull();
     });
@@ -117,7 +117,7 @@ describe("accounts tools", () => {
       const archived = await Account.findOneAndUpdate(
         { _id: account._id, userId },
         { $set: { isArchived: true } },
-        { new: true },
+        { new: true }
       );
       expect(archived!.isArchived).toBe(true);
     });

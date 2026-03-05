@@ -19,10 +19,7 @@ export class McpClientManager {
       },
     });
 
-    const client = new Client(
-      { name: "wealthwise-agent", version: "1.0.0" },
-      { capabilities: {} }
-    );
+    const client = new Client({ name: "wealthwise-agent", version: "1.0.0" }, { capabilities: {} });
 
     try {
       await client.connect(transport);
@@ -45,11 +42,7 @@ export class McpClientManager {
     }
   }
 
-  async callTool(
-    client: Client,
-    toolName: string,
-    args: Record<string, unknown>
-  ): Promise<string> {
+  async callTool(client: Client, toolName: string, args: Record<string, unknown>): Promise<string> {
     try {
       const result = await client.callTool({ name: toolName, arguments: args });
       const content = result.content;

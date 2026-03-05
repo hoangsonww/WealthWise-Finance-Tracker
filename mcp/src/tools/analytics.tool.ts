@@ -8,10 +8,7 @@ function textResult(data: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(data) }] };
 }
 
-export function registerAnalyticsTools(
-  server: McpServer,
-  getUserId: () => string,
-) {
+export function registerAnalyticsTools(server: McpServer, getUserId: () => string) {
   server.tool(
     "spending_by_category",
     "Get spending breakdown by category for a date range, with percentages",
@@ -60,10 +57,7 @@ export function registerAnalyticsTools(
       ];
 
       const results = await Transaction.aggregate(pipeline);
-      const grandTotal = results.reduce(
-        (sum: number, r: { total: number }) => sum + r.total,
-        0,
-      );
+      const grandTotal = results.reduce((sum: number, r: { total: number }) => sum + r.total, 0);
 
       return textResult(
         results.map(
@@ -81,25 +75,18 @@ export function registerAnalyticsTools(
             categoryColor: r.categoryColor,
             amount: r.total,
             transactionCount: r.count,
-            percentage:
-              grandTotal > 0
-                ? Math.round((r.total / grandTotal) * 10000) / 100
-                : 0,
-          }),
-        ),
+            percentage: grandTotal > 0 ? Math.round((r.total / grandTotal) * 10000) / 100 : 0,
+          })
+        )
       );
-    },
+    }
   );
 
   server.tool(
     "income_vs_expense",
     "Get monthly income vs expense comparison for the last N months",
     {
-      months: z
-        .number()
-        .int()
-        .positive()
-        .describe("Number of months to look back"),
+      months: z.number().int().positive().describe("Number of months to look back"),
     },
     async ({ months }) => {
       const userId = getUserId();
@@ -159,9 +146,7 @@ export function registerAnalyticsTools(
       }
 
       const result = Array.from(monthlyMap.values())
-        .sort((a, b) =>
-          a.year !== b.year ? a.year - b.year : a.month - b.month,
-        )
+        .sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month))
         .map((entry) => ({
           month: `${entry.year}-${String(entry.month).padStart(2, "0")}`,
           income: entry.income,
@@ -170,7 +155,7 @@ export function registerAnalyticsTools(
         }));
 
       return textResult(result);
-    },
+    }
   );
 
   server.tool(
@@ -220,10 +205,7 @@ export function registerAnalyticsTools(
       }
 
       const savings = income - expense;
-      const savingsRate =
-        income > 0
-          ? Math.round((savings / income) * 10000) / 100
-          : 0;
+      const savingsRate = income > 0 ? Math.round((savings / income) * 10000) / 100 : 0;
 
       return textResult({
         totalIncome: income,
@@ -232,18 +214,14 @@ export function registerAnalyticsTools(
         savingsRate,
         transactionCount: incomeCount + expenseCount,
       });
-    },
+    }
   );
 
   server.tool(
     "get_trends",
     "Get monthly income, expense, and savings rate trends over N months",
     {
-      months: z
-        .number()
-        .int()
-        .positive()
-        .describe("Number of months to analyze"),
+      months: z.number().int().positive().describe("Number of months to analyze"),
     },
     async ({ months }) => {
       const userId = getUserId();
@@ -303,17 +281,14 @@ export function registerAnalyticsTools(
       }
 
       const sorted = Array.from(monthlyMap.values()).sort((a, b) =>
-        a.year !== b.year ? a.year - b.year : a.month - b.month,
+        a.year !== b.year ? a.year - b.year : a.month - b.month
       );
 
       let runningNetWorth = 0;
       const result = sorted.map((entry) => {
         const net = entry.income - entry.expense;
         runningNetWorth += net;
-        const savingsRate =
-          entry.income > 0
-            ? Math.round((net / entry.income) * 10000) / 100
-            : 0;
+        const savingsRate = entry.income > 0 ? Math.round((net / entry.income) * 10000) / 100 : 0;
         return {
           month: `${entry.year}-${String(entry.month).padStart(2, "0")}`,
           income: entry.income,
@@ -324,7 +299,7 @@ export function registerAnalyticsTools(
       });
 
       return textResult(result);
-    },
+    }
   );
 
   server.tool(
@@ -359,32 +334,24 @@ export function registerAnalyticsTools(
 
       return textResult(
         dayNames.map((name, index) => {
-          const found = results.find(
-            (r: { _id: number }) => r._id === index + 1,
-          );
+          const found = results.find((r: { _id: number }) => r._id === index + 1);
           return {
             day: name,
             total: found ? found.total : 0,
             count: found ? found.count : 0,
             average:
-              found && found.count > 0
-                ? Math.round((found.total / found.count) * 100) / 100
-                : 0,
+              found && found.count > 0 ? Math.round((found.total / found.count) * 100) / 100 : 0,
           };
-        }),
+        })
       );
-    },
+    }
   );
 
   server.tool(
     "category_monthly_breakdown",
     "Get expense breakdown by top categories per month over N months",
     {
-      months: z
-        .number()
-        .int()
-        .positive()
-        .describe("Number of months to analyze"),
+      months: z.number().int().positive().describe("Number of months to analyze"),
     },
     async ({ months }) => {
       const userId = getUserId();
@@ -443,10 +410,7 @@ export function registerAnalyticsTools(
 
       const categoryTotals = new Map<string, number>();
       for (const r of results) {
-        categoryTotals.set(
-          r.categoryName,
-          (categoryTotals.get(r.categoryName) ?? 0) + r.total,
-        );
+        categoryTotals.set(r.categoryName, (categoryTotals.get(r.categoryName) ?? 0) + r.total);
       }
       const topCategories = Array.from(categoryTotals.entries())
         .sort((a, b) => b[1] - a[1])
@@ -468,8 +432,7 @@ export function registerAnalyticsTools(
         }
         const record = monthlyMap.get(key)!;
         if (topCategories.includes(r.categoryName)) {
-          record[r.categoryName] =
-            ((record[r.categoryName] as number) ?? 0) + r.total;
+          record[r.categoryName] = ((record[r.categoryName] as number) ?? 0) + r.total;
         } else {
           record["Other"] = ((record["Other"] as number) ?? 0) + r.total;
         }
@@ -477,17 +440,14 @@ export function registerAnalyticsTools(
 
       return textResult({
         months: Array.from(monthlyMap.values()).sort((a, b) =>
-          (a.month as string).localeCompare(b.month as string),
+          (a.month as string).localeCompare(b.month as string)
         ),
         categories: topCategories,
         colors: Object.fromEntries(
-          topCategories.map((name) => [
-            name,
-            colorMap.get(name) ?? "#94a3b8",
-          ]),
+          topCategories.map((name) => [name, colorMap.get(name) ?? "#94a3b8"])
         ),
       });
-    },
+    }
   );
 
   server.tool(
@@ -545,16 +505,14 @@ export function registerAnalyticsTools(
 
       let runningTotal = 0;
       return textResult(
-        monthly.map(
-          (entry: { year: number; month: number; net: number }) => {
-            runningTotal += entry.net;
-            return {
-              date: `${entry.year}-${String(entry.month).padStart(2, "0")}`,
-              amount: runningTotal,
-            };
-          },
-        ),
+        monthly.map((entry: { year: number; month: number; net: number }) => {
+          runningTotal += entry.net;
+          return {
+            date: `${entry.year}-${String(entry.month).padStart(2, "0")}`,
+            amount: runningTotal,
+          };
+        })
       );
-    },
+    }
   );
 }
