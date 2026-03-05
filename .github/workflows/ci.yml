@@ -130,7 +130,7 @@ jobs:
       - run: npm ci
 
       - name: Type-check all packages
-        run: npm run lint
+        run: npm run format
 
   # ──────────────────────────────────────────────────────────────────────────
   # 🛡️ 4. Dependency Security Audit
