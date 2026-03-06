@@ -13,6 +13,7 @@ import {
   Globe,
   Landmark,
   Lock,
+  Menu,
   Moon,
   PiggyBank,
   Repeat,
@@ -26,6 +27,12 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // ─── Scroll-reveal wrapper ──────────────────────────────────────────────────
 function Reveal({
@@ -256,16 +263,18 @@ export default function LandingPage() {
     <div className="min-h-screen overflow-x-hidden bg-background">
       {/* ── Navigation ─────────────────────────────────────────────────── */}
       <nav className="glass fixed left-0 right-0 top-0 z-50 border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md shadow-primary/25">
                 <Wallet className="h-5 w-5" />
               </div>
-              <span className="text-xl font-bold tracking-tight">WealthWise</span>
+              <span className="whitespace-nowrap text-lg font-bold tracking-tight sm:text-xl">
+                WealthWise
+              </span>
             </div>
 
-            <div className="hidden items-center gap-8 sm:flex">
+            <div className="hidden items-center gap-8 min-[890px]:flex">
               <a
                 href="#features"
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -286,11 +295,11 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Sun className="h-[1.15rem] w-[1.15rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.15rem] w-[1.15rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -299,26 +308,54 @@ export default function LandingPage() {
               {isLoggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
+                  className="hidden cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md min-[890px]:inline-flex"
                 >
                   Your Dashboard
                 </Link>
               ) : (
-                <>
+                <div className="hidden items-center gap-2 min-[890px]:flex">
                   <Link
                     href="/login"
-                    className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
                     Log in
                   </Link>
                   <Link
                     href="/register"
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
+                    className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
                   >
-                    Get Started
+                    Sign Up
                   </Link>
-                </>
+                </div>
               )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Open menu"
+                    className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-[890px]:hidden"
+                  >
+                    <Menu className="h-[1.15rem] w-[1.15rem]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {isLoggedIn ? (
+                    <DropdownMenuItem className="cursor-pointer" asChild>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      <DropdownMenuItem className="cursor-pointer" asChild>
+                        <Link href="/login">Log in</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" asChild>
+                        <Link href="/register">Sign Up</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
