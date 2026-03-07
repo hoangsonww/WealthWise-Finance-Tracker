@@ -32,6 +32,10 @@ export {
   createCategorySchema,
   updateCategorySchema,
   categoryResponseSchema,
+  categoryUsageSchema,
+  categoryLinkedBudgetSchema,
+  categoryLinkedRecurringRuleSchema,
+  categoryManagementResponseSchema,
 } from "./schemas/category.schema";
 
 export {
@@ -58,6 +62,27 @@ export {
   recurringResponseSchema,
 } from "./schemas/recurring.schema";
 
+export {
+  advisorChatRoleEnum,
+  advisorChatHistoryItemSchema,
+  advisorChatRequestSchema,
+  advisorActionKindEnum,
+  advisorCreateAccountActionDataSchema,
+  advisorCreateCategoryActionDataSchema,
+  advisorCreateBudgetActionDataSchema,
+  advisorCreateGoalActionDataSchema,
+  advisorCreateRecurringActionDataSchema,
+  advisorCreateTransactionActionDataSchema,
+  advisorPlannedActionSchema,
+  advisorActionProposalSchema,
+  advisorChatModelOutputSchema,
+  advisorContextStatsSchema,
+  advisorChatResponseSchema,
+  advisorActionExecutionRequestSchema,
+  advisorEntityTypeEnum,
+  advisorActionExecutionResultSchema,
+} from "./schemas/advisor.schema";
+
 // ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
@@ -82,6 +107,10 @@ export type {
   CreateCategoryInput,
   UpdateCategoryInput,
   CategoryResponse,
+  CategoryUsage,
+  CategoryLinkedBudget,
+  CategoryLinkedRecurringRule,
+  CategoryManagementResponse,
   // Budget
   CreateBudgetInput,
   UpdateBudgetInput,
@@ -96,6 +125,25 @@ export type {
   CreateRecurringInput,
   UpdateRecurringInput,
   RecurringResponse,
+  // Advisor
+  AdvisorChatRole,
+  AdvisorChatHistoryItem,
+  AdvisorChatRequest,
+  AdvisorActionKind,
+  AdvisorCreateAccountActionData,
+  AdvisorCreateCategoryActionData,
+  AdvisorCreateBudgetActionData,
+  AdvisorCreateGoalActionData,
+  AdvisorCreateRecurringActionData,
+  AdvisorCreateTransactionActionData,
+  AdvisorPlannedAction,
+  AdvisorActionProposal,
+  AdvisorChatModelOutput,
+  AdvisorContextStats,
+  AdvisorChatResponse,
+  AdvisorActionExecutionRequest,
+  AdvisorEntityType,
+  AdvisorActionExecutionResult,
   // API wrappers
   ApiResponse,
   PaginatedResponse,

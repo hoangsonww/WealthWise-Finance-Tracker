@@ -14,12 +14,12 @@ router.use(authenticate);
  * /categories:
  *   get:
  *     tags: [Categories]
- *     summary: List system default and user-specific categories
+ *     summary: List system default and user-specific categories with usage insights
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of categories
+ *         description: List of categories enriched with usage and linkage metadata
  */
 router.get("/", categoryController.list);
 
@@ -111,6 +111,8 @@ router.patch("/:id", validate(updateCategorySchema), categoryController.update);
  *         description: Category deleted
  *       403:
  *         description: Cannot delete system default categories
+ *       409:
+ *         description: Cannot delete categories that are still linked to other records
  */
 router.delete("/:id", categoryController.remove);
 

@@ -36,6 +36,10 @@ export class ApiError extends Error {
     return new ApiError(409, "CONFLICT", message, details);
   }
 
+  static serviceUnavailable(message: string): ApiError {
+    return new ApiError(503, "SERVICE_UNAVAILABLE", message);
+  }
+
   static internal(message = "Internal server error"): ApiError {
     return new ApiError(500, "INTERNAL_ERROR", message);
   }

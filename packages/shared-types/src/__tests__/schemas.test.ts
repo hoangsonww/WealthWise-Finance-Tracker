@@ -13,6 +13,7 @@ import {
   categoryTypeEnum,
   createCategorySchema,
   updateCategorySchema,
+  categoryManagementResponseSchema,
   budgetPeriodEnum,
   createBudgetSchema,
   updateBudgetSchema,
@@ -23,6 +24,10 @@ import {
   frequencyEnum,
   createRecurringSchema,
   updateRecurringSchema,
+  advisorChatRequestSchema,
+  advisorChatModelOutputSchema,
+  advisorChatResponseSchema,
+  advisorActionExecutionRequestSchema,
 } from "..";
 
 // ---------------------------------------------------------------------------
@@ -538,6 +543,66 @@ describe("updateCategorySchema", () => {
   });
 });
 
+describe("categoryManagementResponseSchema", () => {
+  const valid = {
+    id: "cat-123",
+    userId: "user-123",
+    name: "Groceries",
+    icon: "🛒",
+    color: "#10b981",
+    type: "expense" as const,
+    isDefault: false,
+    createdAt: "2025-06-15T10:00:00.000Z",
+    usage: {
+      transactionCount: 14,
+      budgetCount: 1,
+      activeBudgetCount: 1,
+      recurringCount: 2,
+      activeRecurringCount: 1,
+      spentThisMonth: 312.55,
+      lastTransactionAt: "2025-06-20T10:00:00.000Z",
+      canDelete: false,
+    },
+    linkedBudgets: [
+      {
+        id: "budget-1",
+        amount: 500,
+        period: "monthly" as const,
+        alertThreshold: 0.8,
+        isActive: true,
+      },
+    ],
+    linkedRecurringRules: [
+      {
+        id: "rule-1",
+        description: "Weekly meal plan",
+        amount: 85,
+        frequency: "weekly" as const,
+        nextDueDate: "2025-06-22T10:00:00.000Z",
+        isActive: true,
+        type: "expense" as const,
+      },
+    ],
+    deleteBlockers: ["This category is linked to 14 transactions."],
+  };
+
+  it("accepts a rich category management payload", () => {
+    expect(categoryManagementResponseSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects negative usage counts", () => {
+    expect(
+      categoryManagementResponseSchema.safeParse({
+        ...valid,
+        usage: {
+          ...valid.usage,
+          transactionCount: -1,
+        },
+      }).success
+    ).toBe(false);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Budget Schemas
 // ---------------------------------------------------------------------------
@@ -901,5 +966,197 @@ describe("updateRecurringSchema", () => {
   it("rejects invalid values on optional fields", () => {
     expect(updateRecurringSchema.safeParse({ amount: -5 }).success).toBe(false);
     expect(updateRecurringSchema.safeParse({ frequency: "quarterly" }).success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Advisor Schemas
+// ---------------------------------------------------------------------------
+
+describe("advisorChatRequestSchema", () => {
+  it("accepts a valid message with optional history", () => {
+    const result = advisorChatRequestSchema.safeParse({
+      message: "What should I cut back on this month?",
+      history: [
+        {
+          role: "user",
+          content: "How did I do last month?",
+        },
+        {
+          role: "assistant",
+          content: "Your spending was 8% lower than the previous month.",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("defaults history to an empty array", () => {
+    const result = advisorChatRequestSchema.safeParse({
+      message: "Summarize my subscriptions.",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.history).toEqual([]);
+    }
+  });
+
+  it("rejects empty messages", () => {
+    expect(advisorChatRequestSchema.safeParse({ message: "   " }).success).toBe(false);
+  });
+
+  it("rejects invalid history roles", () => {
+    expect(
+      advisorChatRequestSchema.safeParse({
+        message: "Hello",
+        history: [{ role: "model", content: "Nope" }],
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("advisorChatResponseSchema", () => {
+  it("accepts a valid advisor response payload", () => {
+    const result = advisorChatResponseSchema.safeParse({
+      reply: "Your dining spend is trending above your monthly average.",
+      actions: [
+        {
+          id: "action-1",
+          kind: "create_budget",
+          title: "Create dining budget",
+          rationale: "You asked me to set a monthly dining cap.",
+          requiresConfirmation: true,
+          data: {
+            categoryName: "Dining",
+            amount: 350,
+            period: "monthly",
+            alertThreshold: 0.8,
+          },
+        },
+      ],
+      model: "gemini-2.5-flash",
+      generatedAt: "2026-03-07T12:00:00.000Z",
+      contextStats: {
+        accountCount: 3,
+        transactionCount: 142,
+        categoryCount: 18,
+        budgetCount: 5,
+        goalCount: 2,
+        recurringCount: 4,
+        netWorth: 18250.45,
+        totalAssets: 21450.45,
+        totalDebt: 3200,
+        incomeThisMonth: 6200,
+        spendingThisMonth: 3880,
+        savingsThisMonth: 2320,
+        savingsRate: 37.42,
+        upcomingBills30Days: 3,
+        currency: "USD",
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects invalid currencies", () => {
+    expect(
+      advisorChatResponseSchema.safeParse({
+        reply: "test",
+        model: "gemini-2.5-flash",
+        generatedAt: "2026-03-07T12:00:00.000Z",
+        contextStats: {
+          accountCount: 1,
+          transactionCount: 1,
+          categoryCount: 1,
+          budgetCount: 1,
+          goalCount: 1,
+          recurringCount: 1,
+          netWorth: 1,
+          totalAssets: 1,
+          totalDebt: 0,
+          incomeThisMonth: 1,
+          spendingThisMonth: 1,
+          savingsThisMonth: 0,
+          savingsRate: 0,
+          upcomingBills30Days: 0,
+          currency: "US",
+        },
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("advisorChatModelOutputSchema", () => {
+  it("accepts a valid planned action payload", () => {
+    const result = advisorChatModelOutputSchema.safeParse({
+      reply: "I can add that transaction for you once you confirm.",
+      actions: [
+        {
+          kind: "create_transaction",
+          title: "Add Trader Joe's transaction",
+          rationale: "You explicitly asked me to record this expense.",
+          data: {
+            accountName: "Main Checking",
+            categoryName: "Groceries",
+            type: "expense",
+            amount: 86.42,
+            description: "Trader Joe's",
+            date: "2026-03-07T12:00:00.000Z",
+            tags: ["grocery"],
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects malformed action data", () => {
+    expect(
+      advisorChatModelOutputSchema.safeParse({
+        reply: "test",
+        actions: [
+          {
+            kind: "create_transaction",
+            title: "Missing account",
+            rationale: "test",
+            data: {
+              categoryName: "Groceries",
+              type: "expense",
+              amount: 20,
+              description: "Lunch",
+              date: "2026-03-07T12:00:00.000Z",
+            },
+          },
+        ],
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("advisorActionExecutionRequestSchema", () => {
+  it("accepts an executable proposed action", () => {
+    const result = advisorActionExecutionRequestSchema.safeParse({
+      action: {
+        id: "action-transaction-1",
+        kind: "create_transaction",
+        title: "Add coffee expense",
+        rationale: "You asked me to log this purchase.",
+        requiresConfirmation: true,
+        data: {
+          accountName: "Cash Wallet",
+          categoryName: "Dining",
+          type: "expense",
+          amount: 5.5,
+          description: "Coffee",
+          date: "2026-03-07T12:00:00.000Z",
+          tags: [],
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
   });
 });

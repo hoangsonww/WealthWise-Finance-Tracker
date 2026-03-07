@@ -1,11 +1,13 @@
 import {
   LayoutDashboard,
   ArrowLeftRight,
+  Tags,
   PiggyBank,
   Target,
   Landmark,
   Repeat,
   BarChart3,
+  Sparkles,
   Settings,
   Wallet,
   Building2,
@@ -29,11 +31,13 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
+  { label: "Categories", href: "/categories", icon: Tags },
   { label: "Budgets", href: "/budgets", icon: PiggyBank },
   { label: "Goals", href: "/goals", icon: Target },
   { label: "Accounts", href: "/accounts", icon: Landmark },
   { label: "Recurring", href: "/recurring", icon: Repeat },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "AI Advisor", href: "/advisor", icon: Sparkles },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 

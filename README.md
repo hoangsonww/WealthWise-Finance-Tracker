@@ -46,12 +46,13 @@
 [![GitLab CI/CD](https://img.shields.io/badge/GitLab_CI-FCA121?logo=gitlab&logoColor=white)](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
 [![Argo CD](https://img.shields.io/badge/ArgoCD-0.24-ef4444?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Argo Rollouts](https://img.shields.io/badge/Argo_Rollouts-1.3-ef4444?logo=argo&logoColor=white)](https://argo-rollouts.readthedocs.io/)
-[![MCP](https://img.shields.io/badge/MCP-1.0-4f46e5?logo=data:image/svg+xml;base64,&logoColor=white)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-1.0-4f46e5?logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io/)
 [![Anthropic Claude](https://img.shields.io/badge/Claude-Anthropic-cc785c?logo=anthropic&logoColor=white)](https://anthropic.com/)
+[![Google Gemini](https://img.shields.io/badge/Gemini-Google-4285f4?logo=google&logoColor=white)](https://ai.google.dev/gemini)
 [![Pino](https://img.shields.io/badge/Pino-9-687634)](https://getpino.io/)
 [![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=black)](https://esbuild.github.io/)
 
-A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, budgets, goals, recurring bills, and analytics - all with dark mode, CSV import, and a responsive design. 
+A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, categories, budgets, goals, recurring bills, and analytics with a responsive interface, CSV import, and polished dashboard workflows.
 
 WealthWise also features an **MCP Server** exposing 35 financial tools for AI agents and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
 
@@ -68,7 +69,7 @@ WealthWise also features an **MCP Server** exposing 35 financial tools for AI ag
   - [1. Clone and install](#1-clone-and-install)
   - [2. Configure environment](#2-configure-environment)
   - [3. Start MongoDB](#3-start-mongodb)
-  - [4.  default data](#4--default-data)
+  - [4. Seed default data](#4-seed-default-data)
   - [5. Start development](#5-start-development)
 - [Scripts](#scripts)
 - [Testing](#testing)
@@ -94,6 +95,7 @@ WealthWise also features an **MCP Server** exposing 35 financial tools for AI ag
 - [Test Coverage](#test-coverage)
 - [Tech Stack](#tech-stack)
 - [License](#license)
+- [Creator](#creator)
 
 ---
 
@@ -109,12 +111,14 @@ graph TB
             RQ["TanStack Query"]
             NA["NextAuth.js"]
             RHF["React Hook Form + Zod"]
+            AdvisorUI["AI Advisor + Categories pages"]
         end
 
         subgraph Backend["apps/api - Express 4"]
             Routes["Routes + Swagger"]
             MW["Middleware<br/>Auth · Validate · Rate Limit"]
             Services["Services"]
+            AdvisorService["Advisor Service<br/>context + action execution"]
             Models["Mongoose Models"]
         end
 
@@ -136,12 +140,17 @@ graph TB
     end
 
     DB[(MongoDB 7)]
+    Gemini["Gemini API"]
 
     UI --> RQ
+    AdvisorUI --> RQ
     RQ -->|"HTTP REST"| Routes
     NA -->|"Bearer Token"| MW
     RHF -.->|"validates forms"| Schemas
     Routes --> MW --> Services --> Models --> DB
+    MW --> AdvisorService
+    AdvisorService --> Models
+    AdvisorService --> Gemini
     MW -.->|"validates input"| Schemas
     Schemas --> Types
     Orchestrator --> Specialists --> ClaudeAPI
@@ -154,6 +163,7 @@ graph TB
     style MCP fill:#0f172a,stroke:#4f46e5,color:#e2e8f0
     style AgenticAI fill:#0f172a,stroke:#cc785c,color:#e2e8f0
     style DB fill:#0f172a,stroke:#47a248,color:#e2e8f0
+    style Gemini fill:#0f172a,stroke:#4285f4,color:#e2e8f0
 ```
 
 ---
@@ -162,16 +172,17 @@ graph TB
 
 - **Multi-account tracking** - checking, savings, credit cards, cash, investments
 - **Transaction management** - CRUD, filtering, sorting, text search, CSV import with duplicate detection
+- **Categories workspace** - dedicated category page with search, filters, usage insights, safe delete warnings, and reusable create/edit dialogs
 - **Budget alerts** - per-category budgets with configurable thresholds and spending progress
 - **Financial goals** - target amounts, deadlines, fund contributions, completion tracking
 - **Recurring rules** - daily, weekly, biweekly, monthly, yearly schedules with upcoming bills view
 - **Analytics dashboard** - 8 charts: spending by category, income vs. expense, cash flow, savings rate, net worth, cumulative savings, category breakdown over time, spending by day of week
 - **7 dashboard widgets** - net worth, monthly snapshot, recent transactions, budget health, spending donut, upcoming bills, goal progress
-- **Dark mode** - class-based theme switching via `next-themes`
+- **Appearance settings** - theme mode plus saved reduced-motion and high-contrast preferences
 - **Responsive** - mobile sidebar, adaptive layouts, touch-friendly
 - **Type-safe contracts** - Zod schemas shared between frontend and backend
 - **Interactive API docs** - Swagger UI at `/api/docs`
-- **AI-powered financial advisor** - conversational AI chat with specialized agents for advice, anomaly detection, budget optimization, and forecasting
+- **In-app AI Advisor** - Agentic AI-backed chat grounded on live accounts, transactions, categories, budgets, goals, and recurring rules, with confirmation-based app actions
 - **MCP Server** - Model Context Protocol server exposing 35 tools and 4 resources for AI agent consumption
 - **4 specialist AI agents** - financial advisor, anomaly detector, budget optimizer, and forecaster, orchestrated by an intent classifier
 
@@ -238,7 +249,19 @@ graph TB
     <img src="images/analytics.png" width="100%" />
 </p>
 
-### 9. Settings
+### 9. Categories
+
+<p align="center">
+    <img src="images/categories.png" width="100%" />
+</p>
+
+### 10. AI Advisor
+
+<p align="center">
+    <img src="images/ai.png" width="100%" />
+</p>
+
+### 11. Settings
 
 <p align="center">
     <img src="images/settings.png" width="100%" />
@@ -258,7 +281,7 @@ wealthwise/
 │   │   │   ├── middleware/     # Auth, CORS, validation, error handling, rate limiting
 │   │   │   ├── models/         # Mongoose schemas (7 models)
 │   │   │   ├── routes/         # Express routers with Swagger JSDoc
-│   │   │   ├── s/          # Default categories + demo data
+│   │   │   ├── seeds/          # Default categories + demo data
 │   │   │   ├── services/       # Business logic layer
 │   │   │   ├── utils/          # ApiError, async handler, pagination
 │   │   │   └── __tests__/      # Vitest + mongodb-memory-server
@@ -273,23 +296,26 @@ wealthwise/
 │       │   │   └── api/auth/   # NextAuth route handler
 │       │   ├── components/
 │       │   │   ├── analytics/  # 8 chart components (Recharts)
+│       │   │   ├── advisor/    # AI Advisor chat, suggestions, action cards
 │       │   │   ├── budgets/    # Budget cards and forms
+│       │   │   ├── categories/ # Category cards, sections, dialogs
 │       │   │   ├── dashboard/  # 7 dashboard widgets
 │       │   │   ├── goals/      # Goal cards and forms
 │       │   │   ├── layout/     # Sidebar, topnav, mobile nav, search
+│       │   │   ├── settings/   # Appearance settings and related panels
 │       │   │   ├── shared/     # Pickers, currency display, empty state
 │       │   │   ├── transactions/ # Table, forms, CSV wizard, filters
 │       │   │   └── ui/         # shadcn/ui primitives (20+ components)
 │       │   ├── hooks/          # TanStack Query hooks per entity
 │       │   ├── lib/            # Auth config, API client, utils, constants
-│       │   ├── providers/      # Query, Auth, Theme providers
+│       │   ├── providers/      # Query, Auth, Theme, UI preference providers
 │       │   └── __tests__/      # Vitest + jsdom
 │       └── package.json
 │
 ├── packages/
 │   └── shared-types/           # Zod schemas + inferred TypeScript types
 │       ├── src/
-│       │   ├── schemas/        # 7 schema files (user, account, transaction, etc.)
+│       │   ├── schemas/        # 8 schema files, including advisor contracts
 │       │   ├── types/          # Inferred TS types + API wrappers
 │       │   └── __tests__/      # Schema validation tests
 │       └── package.json
@@ -316,7 +342,7 @@ wealthwise/
 │   │   └── __tests__/         # 31 tests
 │   └── package.json
 │
-├── nginx/                      # Production reverse proxy config
+├── nginx/                     # Production reverse proxy config
 ├── helm/                      # Helm chart (alternative to Kustomize)
 │   └── wealthwise/            # Umbrella chart with per-env values files
 ├── k8s/                       # Kubernetes manifests (Kustomize overlays)
@@ -330,8 +356,8 @@ wealthwise/
 ├── gcp/                       # GCP deployment (Cloud Run, Terraform, Cloud Build)
 ├── oci/                       # OCI deployment (OKE, Terraform, scripts)
 ├── scripts/                   # Utility scripts (secrets, health check, build)
-├── docker-compose.yml          # Development: MongoDB + API + Web (hot-reload)
-├── docker-compose.prod.yml     # Production: multi-stage Dockerfiles + Nginx
+├── docker-compose.yml            # Development: MongoDB + API + Web (hot-reload)
+├── docker-compose.prod.yml       # Production: multi-stage Dockerfiles + Nginx
 ├── docker-compose.production.yml # Production: hardened Dockerfile.prod + health checks
 ├── turbo.json                  # Turborepo pipeline configuration
 ├── .prettierrc                 # Prettier + Tailwind plugin config
@@ -378,6 +404,10 @@ NEXTAUTH_URL=http://localhost:3000
 API_PORT=4000
 API_URL=http://localhost:4000
 NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+GOOGLE_AI_API_KEY=your-google-ai-api-key
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL_ALLOWLIST=
+GEMINI_ALLOW_PRO_MODELS=false
 
 # MCP Server
 MCP_PORT=5100
@@ -405,10 +435,10 @@ docker compose up mongodb -d
 mongod --dbpath /data/db
 ```
 
-### 4.  default data
+### 4. Seed default data
 
 ```bash
-npm run db:          # Default categories only
+npm run db:seed          # Default categories only
 npm run db:seed -- demo  # Full demo dataset
 ```
 
@@ -446,7 +476,7 @@ This starts all services in parallel via Turborepo:
 |---------|-------------|
 | `npm run dev` | Start all apps in development mode |
 | `npm run build` | Build all packages |
-| `npm run test` | Run all test suites (422 tests) |
+| `npm run test` | Run all test suites (442 tests) |
 | `npm run lint` | Type-check all packages |
 | `npm run format` | Format all files with Prettier |
 | `npm run format:check` | Check formatting without writing |
@@ -461,13 +491,13 @@ This starts all services in parallel via Turborepo:
 
 ## Testing
 
-The project has **422 tests** across all packages:
+The project has **442 tests** across all packages:
 
 | Package | Tests | Framework | Environment |
 |---------|-------|-----------|-------------|
-| `apps/api` | 138 | Vitest + mongodb-memory-server | Node |
+| `apps/api` | 147 | Vitest + mongodb-memory-server | Node |
 | `apps/web` | 41 | Vitest | jsdom |
-| `packages/shared-types` | 151 | Vitest | Node |
+| `packages/shared-types` | 162 | Vitest | Node |
 | `mcp` | 61 | Vitest + mongodb-memory-server | Node |
 | `agentic-ai` | 31 | Vitest | Node |
 
@@ -511,6 +541,7 @@ Interactive Swagger UI is available at **http://localhost:4000/api/docs** when t
 | Goals | `GET/POST /goals`, `PATCH/DELETE /goals/:id`, `POST /goals/:id/add-funds` | Bearer |
 | Recurring | `GET/POST /recurring`, `PATCH/DELETE /recurring/:id`, `GET /upcoming` | Bearer |
 | Analytics | `GET /spending-by-category`, `/income-vs-expense`, `/monthly-summary`, `/trends`, `/net-worth`, `/spending-by-day-of-week`, `/category-monthly-breakdown` | Bearer |
+| Advisor | `POST /advisor/chat`, `POST /advisor/actions/execute` | Bearer |
 
 **Error response shape:**
 
@@ -674,7 +705,7 @@ For full details on tool definitions, resource URIs, transport configuration, an
 
 ## Agentic AI
 
-The Agentic AI service provides a conversational financial advisor powered by **Claude Sonnet 4**. An orchestrator agent classifies user intent and delegates to one of 4 specialist agents, each with access to WealthWise data via the MCP server.
+The Agentic AI service provides a separate conversational financial advisor powered by **Claude Sonnet 4**. It is distinct from the in-app `/advisor` page, which is served by the main API and uses Gemini with direct access to the user's live finance context.
 
 - **Port:** 5200
 - **Agents:** Financial advisor, anomaly detector, budget optimizer, forecaster
@@ -800,9 +831,9 @@ We also provide CI/CD workflows for automated testing, building, and deployment 
 ## Test Coverage
 
 ```mermaid
-pie title 422 Tests Across 5 Packages
-    "Shared Types (151)" : 151
-    "API (138)" : 138
+pie title 442 Tests Across 5 Packages
+    "Shared Types (162)" : 162
+    "API (147)" : 147
     "MCP (61)" : 61
     "Web (41)" : 41
     "Agentic AI (31)" : 31
@@ -828,8 +859,9 @@ pie title 422 Tests Across 5 Packages
 | **Testing**        | Vitest, mongodb-memory-server, Testing Library       |
 | **Formatting**     | Prettier + prettier-plugin-tailwindcss               |
 | **MCP Server**     | @modelcontextprotocol/sdk, Express 4, Mongoose 8     |
+| **In-App AI**      | Gemini via Google Generative Language API, Express 4 advisor service |
 | **Agentic AI**     | @anthropic-ai/sdk (Claude), MCP Client, Express 4   |
-| **AI Model**       | Claude Sonnet 4 (claude-sonnet-4-20250514)           |
+| **AI Models**      | Gemini 2.5 Flash by default for `/advisor`, Claude Sonnet 4 for `agentic-ai` |
 | **Deployment**     | Docker Compose, Nginx reverse proxy                  |
 
 ---
@@ -837,3 +869,13 @@ pie title 422 Tests Across 5 Packages
 ## License
 
 This project is licensed under [MIT License](LICENSE).
+
+---
+
+## Creator
+
+WealthWise was created by [**Son Nguyen**](https://sonnguyenhoang.com) - a software engineer passionate about building impactful projects that combine my love for coding and finance. With over 5 years of experience in full-stack development, I designed WealthWise to be a comprehensive personal finance tracker that leverages modern technologies and AI capabilities to help users take control of their financial lives. You can find me on [GitHub](https://github.com/hoangsonww) and [LinkedIn](https://www.linkedin.com/in/hoangsonw/). If you have any questions, feedback, or want to connect, feel free to reach out!
+
+---
+
+Thank you for exploring WealthWise! I hope this project serves as a valuable resource and inspiration for your own development journey. Happy coding and happy financial tracking! 🚀💰

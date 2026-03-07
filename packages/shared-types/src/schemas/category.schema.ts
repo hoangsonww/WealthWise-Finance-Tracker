@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { budgetPeriodEnum } from "./budget.schema";
+import { frequencyEnum, recurringTypeEnum } from "./recurring.schema";
 
 /**
  * Category applies to either income or expense transactions.
@@ -59,4 +61,52 @@ export const categoryResponseSchema = z.object({
   type: categoryTypeEnum,
   isDefault: z.boolean(),
   createdAt: z.string().datetime(),
+});
+
+/**
+ * Computed usage data for a category in the management experience.
+ */
+export const categoryUsageSchema = z.object({
+  transactionCount: z.number().int().nonnegative(),
+  budgetCount: z.number().int().nonnegative(),
+  activeBudgetCount: z.number().int().nonnegative(),
+  recurringCount: z.number().int().nonnegative(),
+  activeRecurringCount: z.number().int().nonnegative(),
+  spentThisMonth: z.number().nonnegative(),
+  lastTransactionAt: z.string().datetime().nullable(),
+  canDelete: z.boolean(),
+});
+
+/**
+ * Budget records linked to a category.
+ */
+export const categoryLinkedBudgetSchema = z.object({
+  id: z.string(),
+  amount: z.number().nonnegative(),
+  period: budgetPeriodEnum,
+  alertThreshold: z.number(),
+  isActive: z.boolean(),
+});
+
+/**
+ * Recurring rules linked to a category.
+ */
+export const categoryLinkedRecurringRuleSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  amount: z.number().nonnegative(),
+  frequency: frequencyEnum,
+  nextDueDate: z.string().datetime(),
+  isActive: z.boolean(),
+  type: recurringTypeEnum,
+});
+
+/**
+ * Rich category shape used by the dashboard categories page.
+ */
+export const categoryManagementResponseSchema = categoryResponseSchema.extend({
+  usage: categoryUsageSchema,
+  linkedBudgets: z.array(categoryLinkedBudgetSchema),
+  linkedRecurringRules: z.array(categoryLinkedRecurringRuleSchema),
+  deleteBlockers: z.array(z.string()),
 });

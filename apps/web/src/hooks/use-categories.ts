@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
 import type {
-  CategoryResponse,
+  CategoryManagementResponse,
   CreateCategoryInput,
   UpdateCategoryInput,
   ApiResponse,
@@ -21,7 +21,7 @@ export function useCategories() {
   return useQuery({
     queryKey: categoryKeys.lists(),
     queryFn: async () => {
-      const res = await apiClient.get<ApiResponse<CategoryResponse[]>>("/categories");
+      const res = await apiClient.get<ApiResponse<CategoryManagementResponse[]>>("/categories");
       return res.data;
     },
   });
@@ -32,7 +32,10 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (data: CreateCategoryInput) => {
-      const res = await apiClient.post<ApiResponse<CategoryResponse>>("/categories", data);
+      const res = await apiClient.post<ApiResponse<CategoryManagementResponse>>(
+        "/categories",
+        data
+      );
       return res.data;
     },
     onSuccess: () => {
@@ -52,7 +55,10 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateCategoryInput }) => {
-      const res = await apiClient.patch<ApiResponse<CategoryResponse>>(`/categories/${id}`, data);
+      const res = await apiClient.patch<ApiResponse<CategoryManagementResponse>>(
+        `/categories/${id}`,
+        data
+      );
       return res.data;
     },
     onSuccess: (_data, variables) => {
@@ -75,7 +81,7 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await apiClient.delete<ApiResponse<null>>(`/categories/${id}`);
+      await apiClient.delete<ApiResponse<CategoryManagementResponse>>(`/categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: categoryKeys.all });

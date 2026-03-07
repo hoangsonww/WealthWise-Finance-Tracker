@@ -77,6 +77,28 @@
     --sidebar-accent: 215 28% 17%;
     --sidebar-accent-foreground: 210 20% 98%;
   }
+
+  :root[data-contrast="high"] {
+    --muted-foreground: 220 9% 34%;
+    --border: 220 13% 82%;
+    --input: 220 13% 78%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 71% 4%;
+    --sidebar-border: 220 13% 82%;
+    --sidebar-accent: 220 20% 90%;
+    --sidebar-accent-foreground: 224 71% 4%;
+  }
+
+  .dark[data-contrast="high"] {
+    --muted-foreground: 215 14% 82%;
+    --border: 215 20% 26%;
+    --input: 215 20% 24%;
+    --sidebar-background: 224 52% 5%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-border: 215 20% 26%;
+    --sidebar-accent: 215 20% 22%;
+    --sidebar-accent-foreground: 210 20% 98%;
+  }
 }
 
 @layer base {
@@ -94,6 +116,19 @@
   /* Smooth per-element transitions - opt-in only, not wildcard */
   html {
     scroll-behavior: smooth;
+  }
+
+  html[data-motion="reduce"] {
+    scroll-behavior: auto;
+  }
+
+  html[data-motion="reduce"] *,
+  html[data-motion="reduce"] *::before,
+  html[data-motion="reduce"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
   button,

@@ -1,7 +1,8 @@
 # Agentic AI — WealthWise
 
 [![Anthropic Claude](https://img.shields.io/badge/Anthropic_Claude-Sonnet_4-d97706?logo=anthropic&logoColor=white)](https://www.anthropic.com/)
-[![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.12-6366f1?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PC9zdmc+&logoColor=white)](https://modelcontextprotocol.io/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-Gemini_3-4285f4?logo=google&logoColor=white)](https://ai.google.dev/gemini)
+[![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.12-6366f1?logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)

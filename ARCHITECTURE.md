@@ -46,6 +46,11 @@
 [![GitLab CI/CD](https://img.shields.io/badge/GitLab_CI-FCA121?logo=gitlab&logoColor=white)](https://about.gitlab.com/stages-devops-lifecycle/continuous-integration/)
 [![Argo CD](https://img.shields.io/badge/ArgoCD-0.24-ef4444?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Argo Rollouts](https://img.shields.io/badge/Argo_Rollouts-1.3-ef4444?logo=argo&logoColor=white)](https://argo-rollouts.readthedocs.io/)
+[![MCP](https://img.shields.io/badge/MCP-1.0-4f46e5?logo=modelcontextprotocol&logoColor=white)](https://modelcontextprotocol.io/)
+[![Anthropic Claude](https://img.shields.io/badge/Claude-Anthropic-cc785c?logo=anthropic&logoColor=white)](https://anthropic.com/)
+[![Google Gemini](https://img.shields.io/badge/Gemini-Google-4285f4?logo=google&logoColor=white)](https://ai.google.dev/gemini)
+[![Pino](https://img.shields.io/badge/Pino-9-687634)](https://getpino.io/)
+[![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=black)](https://esbuild.github.io/)
 
 ---
 
@@ -57,6 +62,7 @@
   - [Layered Design](#layered-design)
   - [Middleware Pipeline](#middleware-pipeline)
   - [Route Map](#route-map)
+  - [In-App AI Financial Advisor Flow](#in-app-ai-financial-advisor-flow)
   - [Error Handling](#error-handling)
   - [Pagination](#pagination)
 - [Database Schema](#database-schema)
@@ -98,12 +104,14 @@ graph TB
             RQ["TanStack Query 5"]
             NA["NextAuth.js"]
             RHF["React Hook Form"]
+            Pages["Dashboard pages<br/>including Categories + Advisor"]
         end
 
         subgraph Backend["apps/api - Express 4"]
             Routes["Routes + Swagger"]
             MW["Middleware Stack"]
             SVC["Service Layer"]
+            AdvisorSvc["Advisor Service<br/>context builder + action executor"]
             MDL["Mongoose Models"]
         end
 
@@ -125,12 +133,17 @@ graph TB
     end
 
     DB[(MongoDB 7)]
+    Gemini["Gemini API"]
 
     UI --> RQ
+    Pages --> RQ
     RQ -- "HTTP / REST" --> Routes
     NA -- "Bearer Token" --> MW
     RHF -. "validates forms" .-> ZS
     Routes --> MW --> SVC --> MDL --> DB
+    MW --> AdvisorSvc
+    AdvisorSvc --> MDL
+    AdvisorSvc --> Gemini
     MW -. "validates input" .-> ZS
     ZS --> TS
     Orchestrator --> Specialists --> ClaudeAPI
@@ -143,9 +156,15 @@ graph TB
     style MCPServer fill:#0f172a,stroke:#4f46e5,color:#e2e8f0
     style AgenticAI fill:#0f172a,stroke:#cc785c,color:#e2e8f0
     style DB fill:#0f172a,stroke:#47a248,color:#e2e8f0
+    style Gemini fill:#0f172a,stroke:#4285f4,color:#e2e8f0
 ```
 
 The application follows a **client-server architecture** inside a **Turborepo monorepo**. The frontend and backend are fully decoupled, communicating over a REST API, with a shared package providing Zod schemas that enforce type safety at both boundaries.
+
+There are now two distinct AI surfaces in the system:
+
+- The in-app `/advisor` experience is served by `apps/api`, which builds a live finance context from MongoDB and calls Gemini for grounded chat plus confirmation-based action planning.
+- The separate `agentic-ai/` service remains Claude-powered and MCP-backed for specialist agent workflows.
 
 > [!NOTE]
 > The frontend is deployed on Vercel at: **[https://wealthwisefinancial.vercel.app/](https://wealthwisefinancial.vercel.app/).** You can register a new account or use the following demo credentials to explore the app:
@@ -269,6 +288,41 @@ All routes are prefixed with `/api/v1`.
 | Goals        | `goal.routes.ts`          | `goal.controller.ts`       | `goal.service.ts`       |
 | Recurring    | `recurring.routes.ts`     | `recurring.controller.ts`  | `recurring.service.ts`  |
 | Analytics    | `analytics.routes.ts`     | `analytics.controller.ts`  | `analytics.service.ts`  |
+| Advisor      | `advisor.routes.ts`       | `advisor.controller.ts`    | `advisor.service.ts`    |
+
+### In-App AI Financial Advisor Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant WEB as Next.js /advisor
+    participant API as Express API
+    participant AUTH as JWT Auth
+    participant ADV as advisor.service
+    participant DB as MongoDB
+    participant GEM as Gemini API
+
+    U->>WEB: Ask for analysis or a create action
+    WEB->>API: POST /api/v1/advisor/chat
+    API->>AUTH: Verify bearer token
+    AUTH-->>API: userId
+    API->>ADV: chat(userId, message, history)
+    ADV->>DB: Load accounts, transactions, categories, budgets, goals, recurring rules
+    DB-->>ADV: Live finance data
+    ADV->>GEM: Structured prompt + finance context
+    GEM-->>ADV: reply + optional proposed actions
+    ADV-->>WEB: grounded reply + confirmation-required actions
+
+    opt User confirms an action
+        WEB->>API: POST /api/v1/advisor/actions/execute
+        API->>ADV: executeAction(userId, action)
+        ADV->>DB: Reuse existing create services
+        DB-->>ADV: Created entity
+        ADV-->>WEB: execution summary + entity id
+    end
+```
+
+The advisor never executes model-proposed actions automatically. Gemini can only propose structured create actions, and the frontend must explicitly confirm them before the API calls the underlying account, category, budget, goal, recurring, or transaction service.
 
 ### Error Handling
 
@@ -442,7 +496,7 @@ graph TD
 
 ```mermaid
 graph TD
-    ROOT["/ - Root Layout<br/><i>Providers: Query, Auth, Theme</i>"]
+    ROOT["/ - Root Layout<br/><i>Providers: Query, Auth, Theme, UI Preferences</i>"]
 
     ROOT --> LANDING["/ - Landing Page<br/><i>public, marketing</i>"]
     ROOT --> NOTFOUND["404 - Not Found"]
@@ -456,11 +510,13 @@ graph TD
 
     DASH_GROUP --> DASHBOARD["/dashboard"]
     DASH_GROUP --> TRANSACTIONS["/transactions"]
+    DASH_GROUP --> CATEGORIES["/categories"]
     DASH_GROUP --> BUDGETS["/budgets"]
     DASH_GROUP --> GOALS["/goals"]
     DASH_GROUP --> ACCOUNTS["/accounts"]
     DASH_GROUP --> RECURRING["/recurring"]
     DASH_GROUP --> ANALYTICS["/analytics"]
+    DASH_GROUP --> ADVISOR["/advisor"]
     DASH_GROUP --> SETTINGS["/settings"]
 
     LEGAL_GROUP --> TERMS["/terms"]
@@ -491,6 +547,15 @@ graph TD
         subgraph Dash["dashboard/"]
             NW[NetWorthCard] & MS[MonthlySnapshot] & RT[RecentTransactions]
             BH[BudgetHealth] & SD[SpendingDonut] & UB[UpcomingBills] & GP[GoalProgress]
+        end
+        subgraph Cats["categories/"]
+            CC[CategoryCard] & CS[CategorySection] & CFD[CategoryFormDialog] & CDD[CategoryDeleteDialog]
+        end
+        subgraph Adv["advisor/"]
+            AM[AdvisorMessage] & AAC[AdvisorActionCard] & ASC[AdvisorSuggestionCard]
+        end
+        subgraph SettingsComp["settings/"]
+            AT[AppearanceTab]
         end
         subgraph Trans["transactions/"]
             TT[TransactionTable] & TF[TransactionForm] & CSV[CsvImportWizard] & FS[FilterSidebar]
@@ -552,9 +617,10 @@ sequenceDiagram
 | Form state   | React Hook Form + Zod resolver                              |
 | Auth session | NextAuth.js (JWT strategy)                                  |
 | Theme        | next-themes (class-based, `localStorage`)                   |
+| UI preferences | Local provider for appearance, reduced motion, contrast   |
 | URL state    | Next.js `searchParams` for filters                          |
 
-No global client-side store (Redux, Zustand, etc.) is used. TanStack Query serves as the single source of truth for all server-derived state.
+No global client-side store (Redux, Zustand, etc.) is used. TanStack Query serves as the single source of truth for all server-derived state, while lightweight client preferences such as appearance and motion settings are persisted locally.
 
 ### Styling Architecture
 
@@ -789,7 +855,7 @@ sequenceDiagram
 
 ## Agentic AI Architecture
 
-The Agentic AI service provides a conversational financial advisor using Claude Sonnet 4 with tool-use capabilities.
+The Agentic AI service provides a conversational financial advisor using Claude Sonnet 4 with tool-use capabilities. It is separate from the in-app `/advisor` flow in `apps/api`, which uses Gemini and direct database-backed finance context assembly instead of MCP tool calls.
 
 ### Agent Pipeline
 
@@ -981,14 +1047,15 @@ Enums, constraints (min/max length, email format, positive numbers), and optiona
 
 ```mermaid
 graph TD
-    subgraph Schemas["7 Schema Files"]
+    subgraph Schemas["8 Schema Files"]
         US["user.schema.ts<br/>register · login · updateProfile"]
         AS["account.schema.ts<br/>create · update · types enum"]
         TS["transaction.schema.ts<br/>create · update · query · sort"]
-        CS["category.schema.ts<br/>create · update · type enum"]
+        CS["category.schema.ts<br/>create · update · usage metadata"]
         BS["budget.schema.ts<br/>create · update · period enum"]
         GS["goal.schema.ts<br/>create · update · addFunds"]
         RS["recurring.schema.ts<br/>create · update · frequency enum"]
+        ADS["advisor.schema.ts<br/>chat, action proposals, execution"]
     end
 
     subgraph Wrappers["Generic API Types"]
@@ -1003,9 +1070,9 @@ graph TD
 ## Testing Strategy
 
 ```mermaid
-pie title Test Distribution (422 total)
-    "Shared Types - Schema Validation" : 151
-    "API - Services & Business Logic" : 97
+pie title Test Distribution (442 total)
+    "Shared Types - Schema Validation" : 162
+    "API - Services & Business Logic" : 106
     "MCP - Tools & Resources" : 61
     "API - Middleware & Utilities" : 41
     "Web - Utility Functions" : 41
@@ -1028,8 +1095,8 @@ pie title Test Distribution (422 total)
 graph LR
     CMD["npm run test"] --> TURBO["Turborepo<br/><i>runs in parallel</i>"]
 
-    TURBO --> ST_TEST["shared-types<br/>vitest (node)<br/><b>151 tests</b>"]
-    TURBO --> API_TEST["api<br/>vitest (node)<br/><b>138 tests</b>"]
+    TURBO --> ST_TEST["shared-types<br/>vitest (node)<br/><b>162 tests</b>"]
+    TURBO --> API_TEST["api<br/>vitest (node)<br/><b>147 tests</b>"]
     TURBO --> WEB_TEST["web<br/>vitest (jsdom)<br/><b>41 tests</b>"]
     TURBO --> MCP_TEST["mcp<br/>vitest (node)<br/><b>61 tests</b>"]
     TURBO --> AI_TEST["agentic-ai<br/>vitest (node)<br/><b>31 tests</b>"]

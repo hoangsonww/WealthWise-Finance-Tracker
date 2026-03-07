@@ -44,3 +44,4 @@ npm-debug.log*
 .codex/config.local.toml
 
 .vercel
+vercel.json

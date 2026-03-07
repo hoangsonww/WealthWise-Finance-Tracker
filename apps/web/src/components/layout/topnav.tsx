@@ -246,7 +246,7 @@ export function TopNav() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings?tab=categories" className="flex items-center gap-2">
+                <Link href="/settings?tab=appearance" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
