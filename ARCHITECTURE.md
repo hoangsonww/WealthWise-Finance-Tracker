@@ -309,17 +309,9 @@ sequenceDiagram
     API->>ADV: chat(userId, message, history)
     ADV->>DB: Load accounts, transactions, categories, budgets, goals, recurring rules
     DB-->>ADV: Live finance data
-    ADV->>GEM: Structured prompt + finance context
-    GEM-->>ADV: reply + optional proposed actions
-    ADV-->>WEB: grounded reply + confirmation-required actions
-
-    opt User confirms an action
-        WEB->>API: POST /api/v1/advisor/actions/execute
-        API->>ADV: executeAction(userId, action)
-        ADV->>DB: Reuse existing create services
-        DB-->>ADV: Created entity
-        ADV-->>WEB: execution summary + entity id
-    end
+    ADV->>GEM: Structured prompt + finance context + frontend workflow guide
+    GEM-->>ADV: reply-only JSON
+    ADV-->>WEB: grounded reply with analysis or exact in-app steps
 ```
 
 The advisor never executes model-proposed actions automatically. Gemini can only propose structured create actions, and the frontend must explicitly confirm them before the API calls the underlying account, category, budget, goal, recurring, or transaction service.
@@ -552,7 +544,7 @@ graph TD
             CC[CategoryCard] & CS[CategorySection] & CFD[CategoryFormDialog] & CDD[CategoryDeleteDialog]
         end
         subgraph Adv["advisor/"]
-            AM[AdvisorMessage] & AAC[AdvisorActionCard] & ASC[AdvisorSuggestionCard]
+            AM[AdvisorMessage] & ASC[AdvisorSuggestionCard]
         end
         subgraph SettingsComp["settings/"]
             AT[AppearanceTab]

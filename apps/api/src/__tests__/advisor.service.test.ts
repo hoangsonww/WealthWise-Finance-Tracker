@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 describe("advisor.service", () => {
-  it("builds a grounded Gemini request and returns advisor stats with planned actions", async () => {
+  it("builds a grounded Gemini request and returns advisor stats with a reply-only payload", async () => {
     const uid = objectId();
     const accountId = objectId();
     const categoryId = objectId();
@@ -153,19 +153,6 @@ describe("advisor.service", () => {
             JSON.stringify({
               reply:
                 "Your grocery spend is well within budget, but it is one of your most active expense categories this month.",
-              actions: [
-                {
-                  kind: "create_budget",
-                  title: "Create a monthly groceries budget",
-                  rationale: "You asked me to help put a cap on grocery spending.",
-                  data: {
-                    categoryName: "Groceries",
-                    amount: 500,
-                    period: "monthly",
-                    alertThreshold: 0.8,
-                  },
-                },
-              ],
             }),
         },
       });
@@ -200,12 +187,6 @@ describe("advisor.service", () => {
         "gemini-1.5-flash",
         "gemini-1.5-flash-8b",
       ]).toContain(result.model);
-      expect(result.actions).toHaveLength(1);
-      expect(result.actions[0]).toMatchObject({
-        kind: "create_budget",
-        title: "Create a monthly groceries budget",
-        requiresConfirmation: true,
-      });
       expect(result.contextStats).toMatchObject({
         accountCount: 1,
         transactionCount: 2,
@@ -224,6 +205,42 @@ describe("advisor.service", () => {
       expect(getGenerativeModelSpy).toHaveBeenCalledWith({
         model: result.model,
         systemInstruction: expect.stringContaining("WealthWise Advisor"),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining("You must return exactly one JSON object"),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining('Top-level JSON shape: {"reply": string}.'),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "WealthWise dashboard navigation labels: Dashboard, Transactions, Categories, Budgets, Goals, Accounts, Recurring, Analytics, AI Advisor, Settings."
+        ),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "Transactions page (/transactions): use the Add Transaction button in the top-right to open the Add Transaction dialog."
+        ),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "The Add Transaction dialog uses Type tabs named Income, Expense, and Transfer, and visible fields named Amount, Description, Account, Category, Date, Notes, and Tags."
+        ),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "The dialog fields are Account Name, Account Type, Initial Balance (or Balance when editing), Currency, and Color."
+        ),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "The dialog fields are Goal Name, Target Amount, Deadline (optional), Icon, and Color."
+        ),
+      });
+      expect(getGenerativeModelSpy.mock.calls[0]?.[0]).toMatchObject({
+        systemInstruction: expect.stringContaining(
+          "If the user asks you to do something in the app for them, do not claim you performed it"
+        ),
       });
       expect(startChatMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -282,88 +299,6 @@ describe("advisor.service", () => {
     }
   });
 
-  it("keeps the advisor reply and drops malformed action payloads", async () => {
-    const uid = objectId();
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    await User.create({
-      _id: uid,
-      email: "fallback@example.com",
-      name: "Taylor Fallback",
-      passwordHash: "hashed-password",
-      currency: "USD",
-    });
-
-    const originalGoogleKey = env.GOOGLE_AI_API_KEY;
-    const originalLegacyKey = env.GEMINI_API_KEY;
-
-    try {
-      (env as { GOOGLE_AI_API_KEY?: string }).GOOGLE_AI_API_KEY = "test-google-ai-key";
-      (env as { GEMINI_API_KEY?: string }).GEMINI_API_KEY = undefined;
-
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            models: [
-              {
-                name: "models/gemini-2.0-flash",
-                supportedGenerationMethods: ["generateContent"],
-              },
-            ],
-          }),
-          {
-            status: 200,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        )
-      );
-
-      const sendMessageMock = vi.fn().mockResolvedValue({
-        response: {
-          text: () =>
-            JSON.stringify({
-              reply:
-                "I can prepare that, but I still need the account and category before I propose the action.",
-              actions: [
-                {
-                  kind: "create_transaction",
-                  title: "Add lunch transaction",
-                  rationale: "You asked me to log the purchase.",
-                  data: {
-                    amount: 18.5,
-                    description: "Lunch",
-                  },
-                },
-              ],
-            }),
-        },
-      });
-
-      vi.spyOn(GoogleGenerativeAI.prototype, "getGenerativeModel").mockReturnValue({
-        startChat: vi.fn(() => ({
-          sendMessage: sendMessageMock,
-        })),
-      } as never);
-
-      const result = await advisorService.chat(uid.toString(), {
-        message: "Add a lunch transaction for me.",
-        history: [],
-      });
-
-      expect(result.reply).toContain("I still need the account and category");
-      expect(result.actions).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "[advisor] Dropped malformed advisor action proposal.",
-        expect.any(Object)
-      );
-    } finally {
-      (env as { GOOGLE_AI_API_KEY?: string }).GOOGLE_AI_API_KEY = originalGoogleKey;
-      (env as { GEMINI_API_KEY?: string }).GEMINI_API_KEY = originalLegacyKey;
-    }
-  });
-
   it("falls back to the next Gemini model when the first model fails", async () => {
     const result = await advisorService.runWithGeminiModelFallback(
       ["gemini-2.5-flash", "gemini-2.0-flash"],
@@ -415,73 +350,5 @@ describe("advisor.service", () => {
     ]);
 
     expect(second).toEqual(first.slice(1).concat(first.slice(0, 1)));
-  });
-
-  it("executes a proposed transaction action by resolving account and category names", async () => {
-    const uid = objectId();
-    const accountId = objectId();
-    const categoryId = objectId();
-
-    await User.create({
-      _id: uid,
-      email: "executor@example.com",
-      name: "Jordan Executor",
-      passwordHash: "hashed-password",
-      currency: "USD",
-    });
-
-    await Account.create({
-      _id: accountId,
-      userId: uid,
-      name: "Main Checking",
-      type: "checking",
-      balance: 1000,
-      currency: "USD",
-      color: "#2563eb",
-      isArchived: false,
-    });
-
-    await Category.create({
-      _id: categoryId,
-      userId: uid,
-      name: "Groceries",
-      icon: "cart",
-      color: "#14b8a6",
-      type: "expense",
-      isDefault: false,
-    });
-
-    const result = await advisorService.executeAction(uid.toString(), {
-      id: "action-1",
-      kind: "create_transaction",
-      title: "Add Trader Joe's expense",
-      rationale: "You asked me to log this purchase.",
-      requiresConfirmation: true,
-      data: {
-        accountName: "Main Checking",
-        categoryName: "Groceries",
-        type: "expense",
-        amount: 48.25,
-        description: "Trader Joe's",
-        date: "2026-03-07T12:00:00.000Z",
-        tags: ["grocery"],
-      },
-    });
-
-    expect(result).toMatchObject({
-      kind: "create_transaction",
-      entityType: "transaction",
-    });
-    expect(result.summary).toContain("Trader Joe's");
-
-    const account = await Account.findById(accountId);
-    expect(account?.balance).toBe(951.75);
-
-    const transaction = await Transaction.findOne({
-      userId: uid,
-      description: "Trader Joe's",
-    });
-    expect(transaction).not.toBeNull();
-    expect(transaction?.amount).toBe(48.25);
   });
 });

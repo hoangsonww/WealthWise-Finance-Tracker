@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { inspect } from "util";
 import {
   GoogleGenerativeAI,
   GoogleGenerativeAIFetchError,
@@ -11,10 +11,7 @@ import {
   type ResponseSchema,
 } from "@google/generative-ai";
 import {
-  advisorPlannedActionSchema,
   advisorChatModelOutputSchema,
-  type AdvisorActionExecutionResult,
-  type AdvisorActionProposal,
   type AdvisorChatRequest,
   type AdvisorChatResponse,
   type AdvisorContextStats,
@@ -27,12 +24,6 @@ import { RecurringRule } from "../models/recurring-rule.model";
 import { Transaction } from "../models/transaction.model";
 import { User } from "../models/user.model";
 import { env } from "../config/env";
-import * as accountService from "./account.service";
-import * as budgetService from "./budget.service";
-import * as categoryService from "./category.service";
-import * as goalService from "./goal.service";
-import * as recurringService from "./recurring.service";
-import * as transactionService from "./transaction.service";
 import { ApiError } from "../utils/api-error";
 
 type GeminiRole = "user" | "model";
@@ -76,78 +67,16 @@ let cachedGeminiModels: {
 } | null = null;
 let modelRotationIndex = 0;
 
-function enumStringSchema(values: string[]): ResponseSchema {
-  return {
-    type: SchemaType.STRING,
-    format: "enum",
-    enum: values,
-  };
-}
-
-const ADVISOR_ACTION_DATA_RESPONSE_SCHEMA: ResponseSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    name: { type: SchemaType.STRING },
-    accountName: { type: SchemaType.STRING },
-    categoryName: { type: SchemaType.STRING },
-    type: { type: SchemaType.STRING },
-    amount: { type: SchemaType.NUMBER },
-    balance: { type: SchemaType.NUMBER },
-    currency: { type: SchemaType.STRING },
-    color: { type: SchemaType.STRING },
-    icon: { type: SchemaType.STRING },
-    title: { type: SchemaType.STRING },
-    description: { type: SchemaType.STRING },
-    rationale: { type: SchemaType.STRING },
-    period: enumStringSchema(["monthly", "weekly"]),
-    alertThreshold: { type: SchemaType.NUMBER },
-    targetAmount: { type: SchemaType.NUMBER },
-    currentAmount: { type: SchemaType.NUMBER },
-    deadline: { type: SchemaType.STRING },
-    frequency: enumStringSchema(["daily", "weekly", "biweekly", "monthly", "yearly"]),
-    startDate: { type: SchemaType.STRING },
-    endDate: { type: SchemaType.STRING },
-    date: { type: SchemaType.STRING },
-    subcategory: { type: SchemaType.STRING },
-    notes: { type: SchemaType.STRING },
-    tags: {
-      type: SchemaType.ARRAY,
-      items: { type: SchemaType.STRING },
-    },
-  },
-};
-
 const ADVISOR_CHAT_RESPONSE_SCHEMA: ResponseSchema = {
   type: SchemaType.OBJECT,
   properties: {
     reply: {
       type: SchemaType.STRING,
       description:
-        "The assistant reply shown to the user. It may include markdown, follow-up questions, or confirmation language.",
-    },
-    actions: {
-      type: SchemaType.ARRAY,
-      maxItems: 3,
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          kind: enumStringSchema([
-            "create_account",
-            "create_category",
-            "create_budget",
-            "create_goal",
-            "create_recurring",
-            "create_transaction",
-          ]),
-          title: { type: SchemaType.STRING },
-          rationale: { type: SchemaType.STRING },
-          data: ADVISOR_ACTION_DATA_RESPONSE_SCHEMA,
-        },
-        required: ["kind", "title", "rationale", "data"],
-      },
+        "The assistant reply shown to the user. It may include markdown, step-by-step instructions, navigation guidance, or follow-up questions.",
     },
   },
-  required: ["reply", "actions"],
+  required: ["reply"],
 };
 
 const ADVISOR_GENERATION_CONFIG: GenerationConfig = {
@@ -191,13 +120,78 @@ function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function normalizeLogDetails(details: unknown, seen = new WeakSet<object>()): unknown {
+  if (details === null || details === undefined) {
+    return details;
+  }
+
+  if (typeof details === "string" || typeof details === "number" || typeof details === "boolean") {
+    return details;
+  }
+
+  if (typeof details === "bigint") {
+    return details.toString();
+  }
+
+  if (details instanceof Date) {
+    return details.toISOString();
+  }
+
+  if (details instanceof Error) {
+    const errorWithExtras = details as Error & Record<string, unknown>;
+    const extraEntries = Object.entries(errorWithExtras).filter(
+      ([key]) => !["name", "message", "stack", "cause"].includes(key)
+    );
+
+    return {
+      name: details.name,
+      message: details.message,
+      stack: details.stack,
+      cause:
+        errorWithExtras.cause !== undefined
+          ? normalizeLogDetails(errorWithExtras.cause, seen)
+          : undefined,
+      ...Object.fromEntries(
+        extraEntries.map(([key, value]) => [key, normalizeLogDetails(value, seen)])
+      ),
+    };
+  }
+
+  if (Array.isArray(details)) {
+    return details.map((value) => normalizeLogDetails(value, seen));
+  }
+
+  if (typeof details === "object") {
+    if (seen.has(details)) {
+      return "[Circular]";
+    }
+
+    seen.add(details);
+
+    return Object.fromEntries(
+      Object.entries(details).map(([key, value]) => [key, normalizeLogDetails(value, seen)])
+    );
+  }
+
+  return String(details);
+}
+
 function logAdvisorError(message: string, details?: unknown) {
   if (details === undefined) {
     console.error(`[advisor] ${message}`);
     return;
   }
 
-  console.error(`[advisor] ${message}`, details);
+  const renderedDetails = inspect(normalizeLogDetails(details), {
+    depth: null,
+    maxArrayLength: null,
+    maxStringLength: null,
+    compact: false,
+    breakLength: 120,
+    sorted: true,
+  });
+
+  console.error(`[advisor] ${message}\n${renderedDetails}`);
 }
 
 function getGeminiApiKey() {
@@ -396,22 +390,47 @@ export async function runWithGeminiModelFallback<T>(
 }
 
 function buildSystemInstruction(userName: string, currency: string) {
+  const referenceNow = new Date().toISOString();
+
   return [
     "You are WealthWise Advisor, an in-app financial analysis assistant.",
     `The user's name is ${userName} and their primary currency is ${currency}.`,
+    `Reference datetime for all relative date resolution is ${referenceNow}.`,
+    "You must return exactly one JSON object that matches the response schema.",
+    "Do not return markdown fences, commentary, or any text before or after the JSON object.",
+    "The JSON object must always contain exactly one top-level key: reply.",
+    'Top-level JSON shape: {"reply": string}.',
+    "The reply field is a string and may contain markdown, bullet lists, and numbered steps.",
     "Base every claim on the supplied WealthWise dataset and recent chat history only.",
     "Quote concrete numbers, categories, dates, and account names whenever they strengthen the answer.",
     "Be practical, candid, and professional. Surface risks, opportunities, and tradeoffs clearly.",
     "If the data is missing or insufficient, say that directly instead of guessing.",
     "Do not invent transactions, balances, categories, or trends that are not present in the dataset.",
     "Do not provide legal, tax, or investment advice. Offer general educational guidance when those topics arise.",
-    "If the user explicitly asks you to create something in the app and all required fields are known, put the proposed create action in the actions array.",
-    "Supported actions are: create_account, create_category, create_budget, create_goal, create_recurring, create_transaction.",
-    "Required action fields: create_account(name,type,balance,currency,color); create_category(name,type,color,icon); create_budget(categoryName,amount,period,alertThreshold); create_goal(name,targetAmount,currentAmount,color,icon); create_recurring(accountName,categoryName,type,amount,description,frequency,startDate); create_transaction(accountName,categoryName,type,amount,description,date).",
-    "Never claim an action has already been completed. Actions must be proposals that wait for user confirmation in the UI.",
-    "If required details are missing, ask a follow-up question in reply and leave actions empty.",
-    "When you propose an action, use exact account and category names from the provided dataset.",
-    "Keep the reply concise and useful. The reply may include markdown.",
+    "If the user asks you to do something in the app for them, do not claim you performed it and do not pretend you can click buttons or save data.",
+    "Instead, explain the exact steps they should take in the current WealthWise UI using the real page names, button labels, dialogs, and controls listed below.",
+    "If the user wants an action completed in-app, structure the reply as short numbered steps with concrete field values copied from their request and the dataset.",
+    "When guiding the user through the UI, refer to visible field labels and button text, not backend property names like accountId or categoryId.",
+    "Use exact sidebar labels and page labels from the app.",
+    "WealthWise dashboard navigation labels: Dashboard, Transactions, Categories, Budgets, Goals, Accounts, Recurring, Analytics, AI Advisor, Settings.",
+    "Frontend workflow guide:",
+    "Transactions page (/transactions): use the Add Transaction button in the top-right to open the Add Transaction dialog. The header also has an Import CSV button. The Add Transaction dialog uses Type tabs named Income, Expense, and Transfer, and visible fields named Amount, Description, Account, Category, Date, Notes, and Tags. The search box placeholder is Search transactions.... Filters appear in the left sidebar on desktop and in a mobile sheet titled Filters. Transaction row menus support Edit, Delete, and Duplicate.",
+    "Accounts page (/accounts): use the Add Account button to open the Add New Account dialog. The dialog fields are Account Name, Account Type, Initial Balance (or Balance when editing), Currency, and Color. Existing account cards have a menu with Edit, Archive, and Delete.",
+    "Budgets page (/budgets): use the Create Budget button to open the Create Budget dialog. The dialog fields are Category, Budget Amount, Period, and Alert Threshold. Existing budget cards support Edit and Delete.",
+    "Goals page (/goals): use the New Goal button to open the Create New Goal dialog. The dialog fields are Goal Name, Target Amount, Deadline (optional), Icon, and Color. Goal cards support Add Funds, Edit, and Delete. Add Funds opens a dialog titled Add Funds to <goal name> with an Amount field. Completed goals are shown in a collapsible Completed Goals section.",
+    "Recurring page (/recurring): use the Add Recurring button to open the Add Recurring Rule dialog. The dialog uses Income and Expense tabs and fields named Amount, Description, Account, Category, Frequency, Start Date, and End Date (optional). Existing rules support Edit, Pause or Resume, Mark as Paid, and Delete. Upcoming recurring items appear in the Upcoming section.",
+    "Categories page (/categories): use the New Category button to open the Create a new category dialog, and editing opens a dialog titled Refine category. The dialog fields are Name, Type, Icon, and Accent color. The page search input placeholder is Search by name, type, or icon label.... Filter chips are All, Expense, Income, Custom, and Protected. Category cards support edit and delete flows, and delete protection warnings may appear when a category is linked elsewhere.",
+    "Analytics page (/analytics): users can change the date range from the dropdown in the header and export analytics with the Export CSV button. This page is for analysis only, not editing data.",
+    "Settings page (/settings): tabs are Profile, Appearance, Data Export, and Danger Zone. Profile contains an Edit Profile form with fields Display Name and Default Currency plus a Save Changes button. Appearance controls theme, reduced motion, and contrast. Data Export lets users choose export format and optional start/end dates before downloading transaction data. Danger Zone is for Delete Account.",
+    "Dashboard page (/dashboard): this is the overview page for recent financial status rather than a primary editing surface.",
+    "When you describe a workflow, prefer this format: 1. Go to <page>. 2. Click <button>. 3. Fill in <fields>. 4. Save or confirm.",
+    "If a requested workflow depends on existing app data, mention the exact account names, category names, amounts, or dates from the dataset and request.",
+    "If the workflow requires missing data, such as an account or category that does not exist, say that clearly and tell the user to create that prerequisite first.",
+    "If the user asks for analysis only, answer directly without unnecessary navigation steps.",
+    "If you are unsure whether a control exists, say so instead of inventing it.",
+    "Keep the reply concise and useful, but detailed enough that the user can follow it without guessing.",
+    'Valid shape example: {"reply":"1. Go to Transactions. 2. Click Add Transaction. 3. Set Type to Expense, Account to Main Checking, Category to Groceries, Amount to 42.18, Description to Trader Joe\'s, and Date to today. 4. Save the transaction."}',
+    'If details are missing, valid shape example: {"reply":"I can walk you through it, but I still need the account name and category you want to use."}',
   ].join("\n");
 }
 
@@ -693,106 +712,6 @@ async function buildAdvisorContext(userId: string): Promise<AdvisorContextBundle
   };
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-async function resolveAccountByName(userId: string, accountName: string) {
-  const exactMatches = await Account.find({
-    userId,
-    isArchived: false,
-    name: { $regex: new RegExp(`^${escapeRegExp(accountName.trim())}$`, "i") },
-  });
-
-  if (exactMatches.length === 1) {
-    return exactMatches[0];
-  }
-
-  if (exactMatches.length > 1) {
-    throw ApiError.badRequest(`Multiple active accounts match "${accountName}".`);
-  }
-
-  const partialMatches = await Account.find({
-    userId,
-    isArchived: false,
-    name: { $regex: new RegExp(escapeRegExp(accountName.trim()), "i") },
-  });
-
-  if (partialMatches.length === 1) {
-    return partialMatches[0];
-  }
-
-  if (partialMatches.length > 1) {
-    throw ApiError.badRequest(`More than one active account matches "${accountName}".`);
-  }
-
-  throw ApiError.badRequest(`No active account named "${accountName}" was found.`);
-}
-
-async function resolveCategoryByName(
-  userId: string,
-  categoryName: string,
-  type?: "income" | "expense"
-) {
-  const baseQuery: Record<string, unknown> = {
-    $or: [{ userId: null }, { userId }],
-  };
-
-  if (type) {
-    baseQuery.type = type;
-  }
-
-  const exactMatches = await Category.find({
-    ...baseQuery,
-    name: { $regex: new RegExp(`^${escapeRegExp(categoryName.trim())}$`, "i") },
-  });
-
-  if (exactMatches.length === 1) {
-    return exactMatches[0];
-  }
-
-  if (exactMatches.length > 1) {
-    throw ApiError.badRequest(`Multiple categories match "${categoryName}".`);
-  }
-
-  const partialMatches = await Category.find({
-    ...baseQuery,
-    name: { $regex: new RegExp(escapeRegExp(categoryName.trim()), "i") },
-  });
-
-  if (partialMatches.length === 1) {
-    return partialMatches[0];
-  }
-
-  if (partialMatches.length > 1) {
-    throw ApiError.badRequest(`More than one category matches "${categoryName}".`);
-  }
-
-  throw ApiError.badRequest(`No category named "${categoryName}" was found.`);
-}
-
-function buildProposedActions(rawActions: unknown): AdvisorActionProposal[] {
-  if (!Array.isArray(rawActions)) {
-    return [];
-  }
-
-  return rawActions.slice(0, 3).flatMap((action) => {
-    const parsed = advisorPlannedActionSchema.safeParse(action);
-    if (!parsed.success) {
-      logAdvisorError("Dropped malformed advisor action proposal.", parsed.error.flatten());
-      return [];
-    }
-
-    return [
-      {
-        ...parsed.data,
-        id: randomUUID(),
-        requiresConfirmation: true,
-      },
-    ];
-  });
-}
-
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -823,21 +742,6 @@ function normalizeAdvisorModelOutput(parsedJson: unknown, responseText: string) 
 
   return {
     reply: normalizedReply,
-    actions: isObject(parsedJson) ? parsedJson.actions : [],
-  };
-}
-
-function summarizeActionExecution(
-  result: { id: string },
-  entityType: AdvisorActionExecutionResult["entityType"],
-  kind: AdvisorActionProposal["kind"],
-  summary: string
-): AdvisorActionExecutionResult {
-  return {
-    kind,
-    entityType,
-    entityId: result.id,
-    summary,
   };
 }
 
@@ -891,122 +795,11 @@ export async function chat(
 
   const parsedJson = parseGeminiJson(responseText);
   const parsedOutput = normalizeAdvisorModelOutput(parsedJson, responseText);
-  const actions = buildProposedActions(parsedOutput.actions);
 
   return {
     reply: parsedOutput.reply,
-    actions,
     model,
     generatedAt: new Date().toISOString(),
     contextStats: context.contextStats,
   };
-}
-
-export async function executeAction(
-  userId: string,
-  action: AdvisorActionProposal
-): Promise<AdvisorActionExecutionResult> {
-  switch (action.kind) {
-    case "create_account": {
-      const result = await accountService.create(userId, action.data);
-      return summarizeActionExecution(
-        result,
-        "account",
-        action.kind,
-        `Created account "${result.name}" with a starting balance of ${roundCurrency(result.balance)} ${result.currency}.`
-      );
-    }
-
-    case "create_category": {
-      const result = await categoryService.create(userId, action.data);
-      return summarizeActionExecution(
-        result,
-        "category",
-        action.kind,
-        `Created ${result.type} category "${result.name}".`
-      );
-    }
-
-    case "create_budget": {
-      const category = await resolveCategoryByName(userId, action.data.categoryName);
-      const result = await budgetService.create(userId, {
-        categoryId: category._id.toString(),
-        amount: action.data.amount,
-        period: action.data.period,
-        alertThreshold: action.data.alertThreshold,
-      });
-
-      return summarizeActionExecution(
-        result,
-        "budget",
-        action.kind,
-        `Created a ${result.period} budget of ${roundCurrency(result.amount)} for "${category.name}".`
-      );
-    }
-
-    case "create_goal": {
-      const result = await goalService.create(userId, action.data);
-      return summarizeActionExecution(
-        result,
-        "goal",
-        action.kind,
-        `Created goal "${result.name}" with a target of ${roundCurrency(result.targetAmount)}.`
-      );
-    }
-
-    case "create_recurring": {
-      const account = await resolveAccountByName(userId, action.data.accountName);
-      const category = await resolveCategoryByName(
-        userId,
-        action.data.categoryName,
-        action.data.type
-      );
-
-      const result = await recurringService.create(userId, {
-        accountId: account._id.toString(),
-        categoryId: category._id.toString(),
-        type: action.data.type,
-        amount: action.data.amount,
-        description: action.data.description,
-        frequency: action.data.frequency,
-        startDate: action.data.startDate,
-        endDate: action.data.endDate,
-      });
-
-      return summarizeActionExecution(
-        result,
-        "recurring_rule",
-        action.kind,
-        `Created ${result.frequency} recurring ${result.type} "${result.description}" for ${roundCurrency(result.amount)}.`
-      );
-    }
-
-    case "create_transaction": {
-      const account = await resolveAccountByName(userId, action.data.accountName);
-      const category = await resolveCategoryByName(
-        userId,
-        action.data.categoryName,
-        action.data.type
-      );
-
-      const result = await transactionService.create(userId, {
-        accountId: account._id.toString(),
-        categoryId: category._id.toString(),
-        type: action.data.type,
-        amount: action.data.amount,
-        description: action.data.description,
-        date: action.data.date,
-        subcategory: action.data.subcategory,
-        notes: action.data.notes,
-        tags: action.data.tags,
-      });
-
-      return summarizeActionExecution(
-        result,
-        "transaction",
-        action.kind,
-        `Added ${result.type} transaction "${result.description}" for ${roundCurrency(result.amount)} on ${result.date.slice(0, 10)}.`
-      );
-    }
-  }
 }

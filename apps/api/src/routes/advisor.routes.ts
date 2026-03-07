@@ -1,8 +1,5 @@
 import { Router } from "express";
-import {
-  advisorActionExecutionRequestSchema,
-  advisorChatRequestSchema,
-} from "@wealthwise/shared-types";
+import { advisorChatRequestSchema } from "@wealthwise/shared-types";
 import { authenticate } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import * as advisorController from "../controllers/advisor.controller";
@@ -45,33 +42,5 @@ router.use(authenticate);
  *         description: Advisor response grounded in the user's finance data
  */
 router.post("/chat", validate(advisorChatRequestSchema), advisorController.chat);
-
-/**
- * @swagger
- * /advisor/actions/execute:
- *   post:
- *     tags: [Advisor]
- *     summary: Execute a previously proposed advisor action after user confirmation
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [action]
- *             properties:
- *               action:
- *                 type: object
- *     responses:
- *       200:
- *         description: Action executed successfully
- */
-router.post(
-  "/actions/execute",
-  validate(advisorActionExecutionRequestSchema),
-  advisorController.executeAction
-);
 
 export default router;

@@ -56,21 +56,9 @@ import {
   advisorChatRoleEnum,
   advisorChatHistoryItemSchema,
   advisorChatRequestSchema,
-  advisorActionKindEnum,
-  advisorCreateAccountActionDataSchema,
-  advisorCreateCategoryActionDataSchema,
-  advisorCreateBudgetActionDataSchema,
-  advisorCreateGoalActionDataSchema,
-  advisorCreateRecurringActionDataSchema,
-  advisorCreateTransactionActionDataSchema,
-  advisorPlannedActionSchema,
-  advisorActionProposalSchema,
   advisorChatModelOutputSchema,
   advisorContextStatsSchema,
   advisorChatResponseSchema,
-  advisorActionExecutionRequestSchema,
-  advisorEntityTypeEnum,
-  advisorActionExecutionResultSchema,
 } from "../schemas/advisor.schema";
 
 // ---------------------------------------------------------------------------
@@ -138,25 +126,9 @@ export type RecurringResponse = z.infer<typeof recurringResponseSchema>;
 export type AdvisorChatRole = z.infer<typeof advisorChatRoleEnum>;
 export type AdvisorChatHistoryItem = z.infer<typeof advisorChatHistoryItemSchema>;
 export type AdvisorChatRequest = z.infer<typeof advisorChatRequestSchema>;
-export type AdvisorActionKind = z.infer<typeof advisorActionKindEnum>;
-export type AdvisorCreateAccountActionData = z.infer<typeof advisorCreateAccountActionDataSchema>;
-export type AdvisorCreateCategoryActionData = z.infer<typeof advisorCreateCategoryActionDataSchema>;
-export type AdvisorCreateBudgetActionData = z.infer<typeof advisorCreateBudgetActionDataSchema>;
-export type AdvisorCreateGoalActionData = z.infer<typeof advisorCreateGoalActionDataSchema>;
-export type AdvisorCreateRecurringActionData = z.infer<
-  typeof advisorCreateRecurringActionDataSchema
->;
-export type AdvisorCreateTransactionActionData = z.infer<
-  typeof advisorCreateTransactionActionDataSchema
->;
-export type AdvisorPlannedAction = z.infer<typeof advisorPlannedActionSchema>;
-export type AdvisorActionProposal = z.infer<typeof advisorActionProposalSchema>;
 export type AdvisorChatModelOutput = z.infer<typeof advisorChatModelOutputSchema>;
 export type AdvisorContextStats = z.infer<typeof advisorContextStatsSchema>;
 export type AdvisorChatResponse = z.infer<typeof advisorChatResponseSchema>;
-export type AdvisorActionExecutionRequest = z.infer<typeof advisorActionExecutionRequestSchema>;
-export type AdvisorEntityType = z.infer<typeof advisorEntityTypeEnum>;
-export type AdvisorActionExecutionResult = z.infer<typeof advisorActionExecutionResultSchema>;
 
 // ---------------------------------------------------------------------------
 // Generic API response wrappers

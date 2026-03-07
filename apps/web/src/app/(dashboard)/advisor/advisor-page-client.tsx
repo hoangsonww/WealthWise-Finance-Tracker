@@ -22,13 +22,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
-  type AdvisorActionProposal,
-  advisorActionProposalSchema,
   advisorChatRequestSchema,
   type AdvisorContextStats,
   advisorContextStatsSchema,
 } from "@wealthwise/shared-types";
-import { useAdvisorChat, useExecuteAdvisorAction } from "@/hooks/use-advisor";
+import { useAdvisorChat } from "@/hooks/use-advisor";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useBudgetSummary } from "@/hooks/use-budgets";
 import { useGoals } from "@/hooks/use-goals";
@@ -36,11 +34,9 @@ import { useProfile } from "@/hooks/use-profile";
 import { useRecurringRules } from "@/hooks/use-recurring";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
-  type AdvisorConversationAction,
   AdvisorMessage,
   type AdvisorConversationMessage,
 } from "@/components/advisor/advisor-message";
-import { AdvisorActionCard } from "@/components/advisor/advisor-action-card";
 import { AdvisorSuggestionCard } from "@/components/advisor/advisor-suggestion-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,21 +50,12 @@ import { toast } from "sonner";
 const advisorComposerSchema = advisorChatRequestSchema.pick({ message: true });
 const ADVISOR_HISTORY_STORAGE_PREFIX = "wealthwise:advisor-history";
 
-const advisorConversationActionStorageSchema = z.intersection(
-  advisorActionProposalSchema,
-  z.object({
-    executionState: z.enum(["idle", "executing", "done", "failed", "dismissed"]).optional(),
-    executionMessage: z.string().optional(),
-  })
-);
-
 const advisorConversationMessageStorageSchema = z.object({
   id: z.string(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   createdAt: z.string(),
   isError: z.boolean().optional(),
-  actions: z.array(advisorConversationActionStorageSchema).optional(),
 });
 
 const advisorConversationStorageSchema = z.object({
@@ -104,11 +91,10 @@ const STARTER_PROMPTS = [
     accentClassName: "bg-sky-500/15",
   },
   {
-    title: "Do it for me",
-    description:
-      "Ask the advisor to prepare a transaction, budget, or category change for confirmation.",
+    title: "Walk me through it",
+    description: "Ask the advisor for exact in-app steps to complete a task yourself.",
     prompt:
-      "Add a $42.18 grocery transaction for Trader Joe's today from Main Checking and put it in Groceries.",
+      "Show me exactly how to add a $42.18 grocery transaction for Trader Joe's today from Main Checking into Groceries.",
     icon: PlusCircle,
     accentClassName: "bg-violet-500/15",
   },
@@ -145,9 +131,9 @@ const STARTER_PROMPTS = [
   },
   {
     title: "Create a category",
-    description: "Let the advisor draft a new category structure for confirmation.",
+    description: "Ask the advisor to explain the exact category workflow in the app.",
     prompt:
-      "Create a new expense category called Wellness for gym, supplements, and recovery costs.",
+      "Show me exactly how to create a new expense category called Wellness for gym, supplements, and recovery costs.",
     icon: PlusCircle,
     accentClassName: "bg-orange-500/15",
   },
@@ -215,7 +201,6 @@ export function AdvisorPageClient() {
   const { data: goals, isLoading: goalsLoading } = useGoals();
   const { data: recurringRules, isLoading: recurringLoading } = useRecurringRules();
   const advisorChat = useAdvisorChat();
-  const executeAdvisorAction = useExecuteAdvisorAction();
 
   const form = useForm<AdvisorComposerValues>({
     resolver: zodResolver(advisorComposerSchema),
@@ -243,7 +228,7 @@ export function AdvisorPageClient() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, advisorChat.isPending, executeAdvisorAction.isPending]);
+  }, [messages, advisorChat.isPending]);
 
   useEffect(() => {
     setIsHistoryHydrated(false);
@@ -304,70 +289,6 @@ export function AdvisorPageClient() {
     );
   }, [storageKey, isHistoryHydrated, hasConversationHistory, messages, latestStats]);
 
-  function updateActionState(
-    messageId: string,
-    actionId: string,
-    updater: (action: AdvisorConversationAction) => AdvisorConversationAction
-  ) {
-    setMessages((current) =>
-      current.map((message) => {
-        if (message.id !== messageId || !message.actions) {
-          return message;
-        }
-
-        return {
-          ...message,
-          actions: message.actions.map((action) =>
-            action.id === actionId ? updater(action) : action
-          ),
-        };
-      })
-    );
-  }
-
-  async function handleApproveAction(messageId: string, actionId: string) {
-    const message = messages.find((entry) => entry.id === messageId);
-    const action = message?.actions?.find((entry) => entry.id === actionId) as
-      | AdvisorActionProposal
-      | undefined;
-
-    if (!action) {
-      return;
-    }
-
-    updateActionState(messageId, actionId, (current) => ({
-      ...current,
-      executionState: "executing",
-      executionMessage: undefined,
-    }));
-
-    try {
-      const result = await executeAdvisorAction.mutateAsync(action);
-      updateActionState(messageId, actionId, (current) => ({
-        ...current,
-        executionState: "done",
-        executionMessage: result.summary,
-      }));
-    } catch (error) {
-      updateActionState(messageId, actionId, (current) => ({
-        ...current,
-        executionState: "failed",
-        executionMessage:
-          error instanceof Error
-            ? error.message
-            : "The action could not be completed. Please try again.",
-      }));
-    }
-  }
-
-  function handleDismissAction(messageId: string, actionId: string) {
-    updateActionState(messageId, actionId, (current) => ({
-      ...current,
-      executionState: "dismissed",
-      executionMessage: "Action dismissed. Nothing was changed in the app.",
-    }));
-  }
-
   function handleClearHistory() {
     if (!storageKey) {
       return;
@@ -425,10 +346,6 @@ export function AdvisorPageClient() {
           role: "assistant",
           content: response.reply,
           createdAt: response.generatedAt,
-          actions: response.actions.map((action) => ({
-            ...action,
-            executionState: "idle",
-          })),
         },
       ]);
     } catch (error) {
@@ -471,7 +388,8 @@ export function AdvisorPageClient() {
               <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
                 WealthWise Advisor sees your live accounts, budgets, goals, recurring bills, and the
                 full transaction ledger for every chat turn. Use it to analyze spending, pressure
-                test savings plans, or spot the next best move.
+                test savings plans, spot the next best move, or get exact step-by-step help using
+                the app.
               </p>
             </div>
 
@@ -537,8 +455,8 @@ export function AdvisorPageClient() {
               <div className="space-y-2">
                 <CardTitle className="text-xl">Conversation</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Ask direct questions. The advisor will reference your live WealthWise data on
-                  every turn.
+                  Ask direct questions. The advisor will reference your live WealthWise data and
+                  explain exact in-app workflows when you need them.
                 </p>
               </div>
 
@@ -560,12 +478,7 @@ export function AdvisorPageClient() {
                   size="icon"
                   className="h-9 w-9 rounded-full text-muted-foreground"
                   onClick={handleClearHistory}
-                  disabled={
-                    !storageKey ||
-                    !hasConversationHistory ||
-                    advisorChat.isPending ||
-                    executeAdvisorAction.isPending
-                  }
+                  disabled={!storageKey || !hasConversationHistory || advisorChat.isPending}
                   aria-label="Clear advisor conversation"
                   title="Clear advisor conversation"
                 >
@@ -588,7 +501,8 @@ export function AdvisorPageClient() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Swipe through grounded prompts for analysis, planning, and app actions.
+                        Swipe through grounded prompts for analysis, planning, and guided in-app
+                        workflows.
                       </p>
                     </div>
 
@@ -669,23 +583,7 @@ export function AdvisorPageClient() {
                 <ScrollArea className="h-full px-6 py-6">
                   <div className="space-y-5">
                     {messages.map((message) => (
-                      <AdvisorMessage key={message.id} message={message} userName={profile?.name}>
-                        {message.role === "assistant" &&
-                          message.actions &&
-                          message.actions.length > 0 && (
-                            <div className="space-y-3 pt-1">
-                              {message.actions.map((action) => (
-                                <AdvisorActionCard
-                                  key={action.id}
-                                  action={action}
-                                  currency={profile?.currency}
-                                  onApprove={() => void handleApproveAction(message.id, action.id)}
-                                  onDismiss={() => handleDismissAction(message.id, action.id)}
-                                />
-                              ))}
-                            </div>
-                          )}
-                      </AdvisorMessage>
+                      <AdvisorMessage key={message.id} message={message} userName={profile?.name} />
                     ))}
                     {advisorChat.isPending && <LoadingMessage />}
                     <div ref={endRef} />
@@ -730,8 +628,8 @@ export function AdvisorPageClient() {
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-muted-foreground">
-                    Shift + Enter for a new line. Press Enter to send. Any create action stays
-                    pending until you confirm it in chat.
+                    Shift + Enter for a new line. Press Enter to send. Ask for analysis or exact
+                    step-by-step guidance through the app.
                   </p>
                   {form.formState.errors.message && (
                     <p className="text-xs text-destructive">
@@ -786,7 +684,7 @@ export function AdvisorPageClient() {
               {[
                 "Which categories are most likely to blow past budget first?",
                 "What recurring bills should I renegotiate or cancel?",
-                "Create a weekly dining budget of $120 and let me confirm it.",
+                "Show me exactly how to create a weekly dining budget of $120 in this app.",
                 "How much can I safely move toward savings each month?",
                 "What changed in my spending pattern compared with last month?",
               ].map((prompt) => (
@@ -816,9 +714,9 @@ export function AdvisorPageClient() {
                 transaction-level explanation.
               </p>
               <p>
-                Any create action stays in a pending state until you explicitly confirm it in the
-                chat. It should also flag uncertainty when data is incomplete and avoid pretending
-                to be a licensed tax, legal, or investment professional.
+                It should flag uncertainty when data is incomplete, give exact page-and-button
+                guidance when you ask how to do something, and avoid pretending to be a licensed
+                tax, legal, or investment professional.
               </p>
             </CardContent>
           </Card>

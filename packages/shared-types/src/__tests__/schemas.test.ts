@@ -27,7 +27,6 @@ import {
   advisorChatRequestSchema,
   advisorChatModelOutputSchema,
   advisorChatResponseSchema,
-  advisorActionExecutionRequestSchema,
 } from "..";
 
 // ---------------------------------------------------------------------------
@@ -1021,21 +1020,6 @@ describe("advisorChatResponseSchema", () => {
   it("accepts a valid advisor response payload", () => {
     const result = advisorChatResponseSchema.safeParse({
       reply: "Your dining spend is trending above your monthly average.",
-      actions: [
-        {
-          id: "action-1",
-          kind: "create_budget",
-          title: "Create dining budget",
-          rationale: "You asked me to set a monthly dining cap.",
-          requiresConfirmation: true,
-          data: {
-            categoryName: "Dining",
-            amount: 350,
-            period: "monthly",
-            alertThreshold: 0.8,
-          },
-        },
-      ],
       model: "gemini-2.5-flash",
       generatedAt: "2026-03-07T12:00:00.000Z",
       contextStats: {
@@ -1089,74 +1073,20 @@ describe("advisorChatResponseSchema", () => {
 });
 
 describe("advisorChatModelOutputSchema", () => {
-  it("accepts a valid planned action payload", () => {
+  it("accepts a valid reply-only model payload", () => {
     const result = advisorChatModelOutputSchema.safeParse({
-      reply: "I can add that transaction for you once you confirm.",
-      actions: [
-        {
-          kind: "create_transaction",
-          title: "Add Trader Joe's transaction",
-          rationale: "You explicitly asked me to record this expense.",
-          data: {
-            accountName: "Main Checking",
-            categoryName: "Groceries",
-            type: "expense",
-            amount: 86.42,
-            description: "Trader Joe's",
-            date: "2026-03-07T12:00:00.000Z",
-            tags: ["grocery"],
-          },
-        },
-      ],
+      reply:
+        "1. Go to Transactions. 2. Click Add Transaction. 3. Fill in the amount, category, and date. 4. Save it.",
     });
 
     expect(result.success).toBe(true);
   });
 
-  it("rejects malformed action data", () => {
+  it("rejects an empty reply", () => {
     expect(
       advisorChatModelOutputSchema.safeParse({
-        reply: "test",
-        actions: [
-          {
-            kind: "create_transaction",
-            title: "Missing account",
-            rationale: "test",
-            data: {
-              categoryName: "Groceries",
-              type: "expense",
-              amount: 20,
-              description: "Lunch",
-              date: "2026-03-07T12:00:00.000Z",
-            },
-          },
-        ],
+        reply: "   ",
       }).success
     ).toBe(false);
-  });
-});
-
-describe("advisorActionExecutionRequestSchema", () => {
-  it("accepts an executable proposed action", () => {
-    const result = advisorActionExecutionRequestSchema.safeParse({
-      action: {
-        id: "action-transaction-1",
-        kind: "create_transaction",
-        title: "Add coffee expense",
-        rationale: "You asked me to log this purchase.",
-        requiresConfirmation: true,
-        data: {
-          accountName: "Cash Wallet",
-          categoryName: "Dining",
-          type: "expense",
-          amount: 5.5,
-          description: "Coffee",
-          date: "2026-03-07T12:00:00.000Z",
-          tags: [],
-        },
-      },
-    });
-
-    expect(result.success).toBe(true);
   });
 });

@@ -1,15 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { AdvisorActionProposal } from "@wealthwise/shared-types";
 import { Bot, User2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn, formatRelativeDate, getInitials } from "@/lib/utils";
-
-export type AdvisorConversationAction = AdvisorActionProposal & {
-  executionState?: "idle" | "executing" | "done" | "failed" | "dismissed";
-  executionMessage?: string;
-};
 
 export interface AdvisorConversationMessage {
   id: string;
@@ -17,7 +11,6 @@ export interface AdvisorConversationMessage {
   content: string;
   createdAt: string;
   isError?: boolean;
-  actions?: AdvisorConversationAction[];
 }
 
 interface AdvisorMessageProps {

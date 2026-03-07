@@ -10,12 +10,3 @@ export const chat = asyncHandler(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
-export const executeAction = asyncHandler(async (req: Request, res: Response) => {
-  const result = await advisorService.executeAction(req.userId!, req.body.action);
-
-  res.status(200).json({
-    success: true,
-    data: result,
-  });
-});

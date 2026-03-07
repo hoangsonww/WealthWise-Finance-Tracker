@@ -182,7 +182,7 @@ graph TB
 - **Responsive** - mobile sidebar, adaptive layouts, touch-friendly
 - **Type-safe contracts** - Zod schemas shared between frontend and backend
 - **Interactive API docs** - Swagger UI at `/api/docs`
-- **In-app AI Advisor** - Agentic AI-backed chat grounded on live accounts, transactions, categories, budgets, goals, and recurring rules, with confirmation-based app actions
+- **In-app AI Advisor** - Gemini-backed chat grounded on live accounts, transactions, categories, budgets, goals, recurring rules, and real frontend workflow knowledge so it can explain exactly what to do in the app
 - **MCP Server** - Model Context Protocol server exposing 35 tools and 4 resources for AI agent consumption
 - **4 specialist AI agents** - financial advisor, anomaly detector, budget optimizer, and forecaster, orchestrated by an intent classifier
 
@@ -541,7 +541,7 @@ Interactive Swagger UI is available at **http://localhost:4000/api/docs** when t
 | Goals | `GET/POST /goals`, `PATCH/DELETE /goals/:id`, `POST /goals/:id/add-funds` | Bearer |
 | Recurring | `GET/POST /recurring`, `PATCH/DELETE /recurring/:id`, `GET /upcoming` | Bearer |
 | Analytics | `GET /spending-by-category`, `/income-vs-expense`, `/monthly-summary`, `/trends`, `/net-worth`, `/spending-by-day-of-week`, `/category-monthly-breakdown` | Bearer |
-| Advisor | `POST /advisor/chat`, `POST /advisor/actions/execute` | Bearer |
+| Advisor | `POST /advisor/chat` | Bearer |
 
 **Error response shape:**
 
