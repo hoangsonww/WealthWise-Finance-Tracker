@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Accounts | WealthWise",
     description:
       "Manage all your financial accounts in one place. Track checking, savings, credit card, and investment account balances.",
-    url: "https://wealthwisefinancial.vercel.app/accounts",
+    url: "/accounts",
   },
 };
 

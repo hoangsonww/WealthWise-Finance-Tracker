@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Settings | WealthWise",
     description:
       "Manage your WealthWise account settings — update profile, customize categories, export data, and configure preferences.",
-    url: "https://wealthwisefinancial.vercel.app/settings",
+    url: "/settings",
   },
 };
 

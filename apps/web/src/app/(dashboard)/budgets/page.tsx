@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Budgets | WealthWise",
     description:
       "Create monthly spending budgets by category, track progress in real time, and visualize spending versus your plan.",
-    url: "https://wealthwisefinancial.vercel.app/budgets",
+    url: "/budgets",
   },
 };
 

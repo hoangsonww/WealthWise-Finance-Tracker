@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Transactions | WealthWise",
     description:
       "View, search, filter, and manage all your income and expense transactions. Import from CSV or add entries manually.",
-    url: "https://wealthwisefinancial.vercel.app/transactions",
+    url: "/transactions",
   },
 };
 

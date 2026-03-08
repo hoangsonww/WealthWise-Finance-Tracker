@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Analytics | WealthWise",
     description:
       "Explore deep financial analytics — spending by category, income vs expenses, net worth trends, savings rate, and cash flow charts.",
-    url: "https://wealthwisefinancial.vercel.app/analytics",
+    url: "/analytics",
   },
 };
 

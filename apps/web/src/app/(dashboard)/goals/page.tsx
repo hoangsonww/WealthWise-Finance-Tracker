@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Goals | WealthWise",
     description:
       "Set and track savings goals for anything — emergency funds, vacations, home purchases. Watch your progress grow as you contribute.",
-    url: "https://wealthwisefinancial.vercel.app/goals",
+    url: "/goals",
   },
 };
 

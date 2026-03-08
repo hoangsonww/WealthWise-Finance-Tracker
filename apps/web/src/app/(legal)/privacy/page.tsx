@@ -1,4 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "Read how WealthWise collects, uses, and protects your personal and financial information.",
+  alternates: {
+    canonical: "/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy | WealthWise",
+    description:
+      "Read how WealthWise collects, uses, and protects your personal and financial information.",
+    url: "/privacy",
+  },
+};
 
 export default function PrivacyPage() {
   return (
