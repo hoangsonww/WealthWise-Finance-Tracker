@@ -2,12 +2,15 @@ import { Holding, IHolding } from "../models/holding.model";
 import { ApiError } from "../utils/api-error";
 import type { CreateHoldingInput, UpdateHoldingInput } from "@wealthwise/shared-types";
 
+/** Round percentage values to two decimal places (multiply then divide by this). */
+const PERCENT_PRECISION = 10000;
+
 function formatHolding(holding: IHolding) {
   const marketValue = holding.currentPrice * holding.quantity;
   const totalCostBasis = holding.costBasis * holding.quantity;
   const gainLoss = marketValue - totalCostBasis;
   const gainLossPercent =
-    totalCostBasis > 0 ? Math.round((gainLoss / totalCostBasis) * 10000) / 100 : 0;
+    totalCostBasis > 0 ? Math.round((gainLoss / totalCostBasis) * PERCENT_PRECISION) / 100 : 0;
 
   return {
     id: holding._id.toString(),
@@ -135,14 +138,14 @@ export async function getPortfolioSummary(userId: string) {
 
   const totalGainLoss = totalMarketValue - totalCostBasis;
   const totalGainLossPercent =
-    totalCostBasis > 0 ? Math.round((totalGainLoss / totalCostBasis) * 10000) / 100 : 0;
+    totalCostBasis > 0 ? Math.round((totalGainLoss / totalCostBasis) * PERCENT_PRECISION) / 100 : 0;
 
   const allocation = Array.from(allocationMap.entries()).map(([assetClass, { value, count }]) => ({
     assetClass: assetClass as IHolding["assetClass"],
     value,
     count,
     percentage:
-      totalMarketValue > 0 ? Math.round((value / totalMarketValue) * 10000) / 100 : 0,
+      totalMarketValue > 0 ? Math.round((value / totalMarketValue) * PERCENT_PRECISION) / 100 : 0,
   }));
 
   // Sort allocation by value descending

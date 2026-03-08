@@ -192,15 +192,16 @@ export function HoldingsList({
                         />
                       </form>
                     ) : (
-                      <button
-                        type="button"
-                        title="Click to update price"
-                        onClick={() => startEditPrice(holding)}
-                        className="group/price flex items-center justify-end gap-1 hover:text-primary"
-                      >
-                        {formatCurrency(holding.currentPrice)}
-                        <RefreshCw className="h-3 w-3 opacity-0 transition-opacity group-hover/price:opacity-60" />
-                      </button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Click to update price"
+                      onClick={() => startEditPrice(holding)}
+                      className="group/price flex h-auto items-center gap-1 px-1 py-0.5 font-normal hover:text-primary"
+                    >
+                      {formatCurrency(holding.currentPrice)}
+                      <RefreshCw className="h-3 w-3 opacity-0 transition-opacity group-hover/price:opacity-60" />
+                    </Button>
                     )}
                   </td>
 

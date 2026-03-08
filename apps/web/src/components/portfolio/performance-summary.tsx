@@ -5,6 +5,7 @@ import type { PortfolioSummary } from "@wealthwise/shared-types";
 import { formatCurrency, cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 interface PerformanceSummaryProps {
   summary: PortfolioSummary | undefined;
@@ -84,12 +85,9 @@ export function PortfolioEmpty({ onAdd }: PortfolioEmptyProps) {
         <p className="max-w-sm text-sm text-muted-foreground">
           Add your investment holdings to see allocation breakdowns, gain/loss summaries, and more.
         </p>
-        <button
-          onClick={onAdd}
-          className="mt-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
+        <Button onClick={onAdd} size="default" className="mt-2">
           Add First Holding
-        </button>
+        </Button>
       </CardContent>
     </Card>
   );

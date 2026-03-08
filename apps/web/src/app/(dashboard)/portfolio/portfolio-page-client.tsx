@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Download, RefreshCw } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import type { HoldingResponse } from "@wealthwise/shared-types";
 import {
   useHoldings,
@@ -14,11 +14,13 @@ import { HoldingsList } from "@/components/portfolio/holdings-list";
 import { HoldingForm } from "@/components/portfolio/holding-form";
 import { AllocationChart } from "@/components/portfolio/allocation-chart";
 import { PerformanceSummary, PortfolioEmpty } from "@/components/portfolio/performance-summary";
+import { PriceRefreshDialog } from "@/components/portfolio/price-refresh-dialog";
 import { format } from "date-fns";
 
 export function PortfolioPageClient() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<HoldingResponse | null>(null);
+  const [priceRefreshOpen, setPriceRefreshOpen] = useState(false);
 
   const { data: holdings, isLoading: holdingsLoading } = useHoldings();
   const { data: summary, isLoading: summaryLoading } = usePortfolioSummary();
@@ -87,14 +89,10 @@ export function PortfolioPageClient() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              if (!holdings || holdings.length === 0) return;
-              // Dummy bulk refresh — clicking opens the inline editor per row
-            }}
-            title="Update prices inline by clicking each current price cell"
+            onClick={() => setPriceRefreshOpen(true)}
+            disabled={!holdings || holdings.length === 0}
             className="gap-1.5"
           >
-            <RefreshCw className="h-4 w-4" />
             Refresh Prices
           </Button>
           <Button size="sm" onClick={openCreate} className="gap-1.5">
@@ -131,6 +129,13 @@ export function PortfolioPageClient() {
         open={formOpen}
         onOpenChange={setFormOpen}
         holding={editingHolding}
+      />
+
+      {/* Bulk price refresh dialog */}
+      <PriceRefreshDialog
+        open={priceRefreshOpen}
+        onOpenChange={setPriceRefreshOpen}
+        holdings={holdings ?? []}
       />
     </div>
   );
