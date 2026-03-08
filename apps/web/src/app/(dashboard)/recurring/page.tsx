@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Recurring | WealthWise",
     description:
       "Manage recurring bills, subscriptions, and income. Set up rules, track due dates, and record payments to stay on top of your finances.",
-    url: "https://wealthwisefinancial.vercel.app/recurring",
+    url: "/recurring",
   },
 };
 

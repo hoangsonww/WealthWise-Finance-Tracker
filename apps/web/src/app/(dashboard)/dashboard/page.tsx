@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: "Dashboard | WealthWise",
     description:
       "Your personal finance overview. See net worth, monthly cash flow, recent transactions, budget health, and upcoming bills at a glance.",
-    url: "https://wealthwisefinancial.vercel.app/dashboard",
+    url: "/dashboard",
   },
 };
 

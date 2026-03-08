@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Categories | WealthWise",
     description:
       "Manage the category system behind your budgets, recurring rules, analytics, and transaction history in WealthWise.",
-    url: "https://wealthwisefinancial.vercel.app/categories",
+    url: "/categories",
   },
 };
 

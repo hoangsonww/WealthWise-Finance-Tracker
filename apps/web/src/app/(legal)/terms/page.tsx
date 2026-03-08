@@ -1,4 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description:
+    "Read the WealthWise terms of service, user responsibilities, legal limitations, and account usage conditions.",
+  alternates: {
+    canonical: "/terms",
+  },
+  openGraph: {
+    title: "Terms of Service | WealthWise",
+    description:
+      "Read the WealthWise terms of service, user responsibilities, legal limitations, and account usage conditions.",
+    url: "/terms",
+  },
+};
 
 export default function TermsPage() {
   return (

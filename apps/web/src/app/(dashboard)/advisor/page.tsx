@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "AI Advisor | WealthWise",
     description:
       "Use WealthWise AI Advisor to analyze spending, savings, budgets, and recurring bills with your real financial data.",
-    url: "https://wealthwisefinancial.vercel.app/advisor",
+    url: "/advisor",
   },
 };
 

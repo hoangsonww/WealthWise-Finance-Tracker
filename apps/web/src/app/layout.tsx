@@ -4,19 +4,51 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/providers/auth-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { UiPreferencesProvider } from "@/providers/ui-preferences-provider";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL, absoluteUrl } from "@/lib/seo";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://wealthwisefinancial.vercel.app"),
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  inLanguage: "en-US",
+};
 
+const webApplicationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: SITE_NAME,
+  url: SITE_URL,
+  applicationCategory: "FinanceApplication",
+  operatingSystem: "Any",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  description: SITE_DESCRIPTION,
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: absoluteUrl("/android-chrome-512x512.png"),
+};
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "WealthWise – Smart Personal Finance Tracker",
+    default: SITE_TITLE,
     template: "%s | WealthWise",
   },
-
-  description:
-    "WealthWise is your all-in-one personal finance companion. Track income and expenses, manage budgets, set savings goals, monitor recurring bills, and unlock deep financial analytics — all in one secure, intuitive dashboard.",
-
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  category: "Personal Finance",
+  referrer: "origin-when-cross-origin",
   keywords: [
     "personal finance",
     "budget tracker",
@@ -34,11 +66,14 @@ export const metadata: Metadata = {
     "wealth tracker",
     "free budget app",
   ],
-
   authors: [{ name: "Son Nguyen", url: "https://github.com/hoangsonww" }],
   creator: "Son Nguyen",
-  publisher: "WealthWise",
-
+  publisher: SITE_NAME,
+  formatDetection: {
+    telephone: false,
+    address: false,
+    email: false,
+  },
   robots: {
     index: true,
     follow: true,
@@ -52,43 +87,55 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-
   openGraph: {
     type: "website",
-    title: "WealthWise – Smart Personal Finance Tracker",
-    description:
-      "Take full control of your finances with WealthWise. Track transactions, manage budgets, set savings goals, and gain actionable insights with powerful analytics.",
-    url: "https://wealthwisefinancial.vercel.app",
-    siteName: "WealthWise",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
     locale: "en_US",
     images: [
       {
-        url: "/icon.svg",
+        url: absoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: "WealthWise - Smart Personal Finance Tracker",
+      },
+      {
+        url: absoluteUrl("/android-chrome-512x512.png"),
         width: 512,
         height: 512,
-        alt: "WealthWise – Smart Personal Finance Tracker",
+        alt: "WealthWise app icon",
       },
     ],
   },
-
   twitter: {
     card: "summary_large_image",
-    title: "WealthWise – Smart Personal Finance Tracker",
-    description:
-      "Track expenses, manage budgets, and hit savings goals with WealthWise — your smart personal finance dashboard.",
-    images: ["/icon.svg"],
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [absoluteUrl("/twitter-image"), absoluteUrl("/android-chrome-512x512.png")],
   },
-
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
+  },
   icons: {
-    icon: "/icon.svg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+    ],
     shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
-
-  manifest: "/manifest.json",
-
+  manifest: "/manifest.webmanifest",
   alternates: {
-    canonical: "https://wealthwisefinancial.vercel.app",
+    canonical: SITE_URL,
+    languages: {
+      "en-US": SITE_URL,
+    },
   },
 };
 
@@ -96,6 +143,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webApplicationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+
         <ThemeProvider>
           <UiPreferencesProvider>
             <AuthProvider>
