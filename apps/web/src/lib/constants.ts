@@ -35,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Budgets", href: "/budgets", icon: PiggyBank },
   { label: "Goals", href: "/goals", icon: Target },
   { label: "Accounts", href: "/accounts", icon: Landmark },
+  { label: "Portfolio", href: "/portfolio", icon: TrendingUp },
   { label: "Recurring", href: "/recurring", icon: Repeat },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "AI Advisor", href: "/advisor", icon: Sparkles },

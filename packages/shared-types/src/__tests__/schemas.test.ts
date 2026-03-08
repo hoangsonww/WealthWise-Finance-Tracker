@@ -27,6 +27,11 @@ import {
   advisorChatRequestSchema,
   advisorChatModelOutputSchema,
   advisorChatResponseSchema,
+  assetClassEnum,
+  createHoldingSchema,
+  updateHoldingSchema,
+  refreshPricesSchema,
+  portfolioSummarySchema,
 } from "..";
 
 // ---------------------------------------------------------------------------
@@ -1088,5 +1093,168 @@ describe("advisorChatModelOutputSchema", () => {
         reply: "   ",
       }).success
     ).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Holding / Portfolio Schemas
+// ---------------------------------------------------------------------------
+
+describe("assetClassEnum", () => {
+  it("accepts all valid asset classes", () => {
+    const validClasses = ["stocks", "etf", "bonds", "crypto", "real_estate", "cash", "other"];
+    for (const cls of validClasses) {
+      expect(assetClassEnum.safeParse(cls).success).toBe(true);
+    }
+  });
+
+  it("rejects an unknown asset class", () => {
+    expect(assetClassEnum.safeParse("derivatives").success).toBe(false);
+  });
+});
+
+describe("createHoldingSchema", () => {
+  const valid = {
+    symbol: "aapl",
+    name: "Apple Inc.",
+    assetClass: "stocks",
+    quantity: 10,
+    costBasis: 150,
+    currentPrice: 175,
+    currency: "usd",
+  };
+
+  it("accepts a valid holding and uppercases symbol/currency", () => {
+    const result = createHoldingSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.symbol).toBe("AAPL");
+      expect(result.data.currency).toBe("USD");
+    }
+  });
+
+  it("defaults assetClass to stocks", () => {
+    const { assetClass: _omit, ...noClass } = valid;
+    const result = createHoldingSchema.safeParse(noClass);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.assetClass).toBe("stocks");
+    }
+  });
+
+  it("defaults currency to USD", () => {
+    const { currency: _omit, ...noCurrency } = valid;
+    const result = createHoldingSchema.safeParse(noCurrency);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.currency).toBe("USD");
+    }
+  });
+
+  it("rejects missing symbol", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, symbol: "" }).success).toBe(false);
+  });
+
+  it("rejects negative quantity", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, quantity: -1 }).success).toBe(false);
+  });
+
+  it("rejects zero quantity", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, quantity: 0 }).success).toBe(false);
+  });
+
+  it("rejects negative costBasis", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, costBasis: -10 }).success).toBe(false);
+  });
+
+  it("accepts zero costBasis", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, costBasis: 0 }).success).toBe(true);
+  });
+
+  it("rejects currency that is not 3 characters", () => {
+    expect(createHoldingSchema.safeParse({ ...valid, currency: "US" }).success).toBe(false);
+    expect(createHoldingSchema.safeParse({ ...valid, currency: "USDD" }).success).toBe(false);
+  });
+
+  it("accepts optional sector and notes", () => {
+    const result = createHoldingSchema.safeParse({
+      ...valid,
+      sector: "Technology",
+      notes: "Long-term hold",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("updateHoldingSchema", () => {
+  it("accepts an empty object (all fields optional)", () => {
+    expect(updateHoldingSchema.safeParse({}).success).toBe(true);
+  });
+
+  it("accepts a partial update", () => {
+    const result = updateHoldingSchema.safeParse({ currentPrice: 200 });
+    expect(result.success).toBe(true);
+  });
+
+  it("still validates provided fields", () => {
+    expect(updateHoldingSchema.safeParse({ quantity: -5 }).success).toBe(false);
+  });
+});
+
+describe("refreshPricesSchema", () => {
+  it("accepts valid updates array", () => {
+    const result = refreshPricesSchema.safeParse({
+      updates: [{ id: "abc123", currentPrice: 150 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty updates array", () => {
+    expect(refreshPricesSchema.safeParse({ updates: [] }).success).toBe(false);
+  });
+
+  it("rejects negative price", () => {
+    expect(
+      refreshPricesSchema.safeParse({
+        updates: [{ id: "abc123", currentPrice: -1 }],
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects missing id", () => {
+    expect(
+      refreshPricesSchema.safeParse({
+        updates: [{ currentPrice: 100 }],
+      }).success
+    ).toBe(false);
+  });
+});
+
+describe("portfolioSummarySchema", () => {
+  it("accepts a valid portfolio summary", () => {
+    const result = portfolioSummarySchema.safeParse({
+      totalMarketValue: 10000,
+      totalCostBasis: 8000,
+      totalGainLoss: 2000,
+      totalGainLossPercent: 25,
+      allocation: [
+        { assetClass: "stocks", value: 7000, percentage: 70, count: 5 },
+        { assetClass: "crypto", value: 3000, percentage: 30, count: 2 },
+      ],
+      holdingCount: 7,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty allocation array", () => {
+    const result = portfolioSummarySchema.safeParse({
+      totalMarketValue: 0,
+      totalCostBasis: 0,
+      totalGainLoss: 0,
+      totalGainLossPercent: 0,
+      allocation: [],
+      holdingCount: 0,
+    });
+    expect(result.success).toBe(true);
   });
 });
