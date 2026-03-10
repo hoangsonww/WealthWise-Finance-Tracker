@@ -28,10 +28,12 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ### Prerequisites
 
 - Node.js 20+
-- MongoDB 7+ (or Docker)
+- MongoDB 7+ (or Docker / Podman)
 - npm 10+
 
 ### Setup
+
+**Option A — Native (recommended for development):**
 
 ```bash
 git clone https://github.com/<owner>/wealthwise.git
@@ -41,6 +43,18 @@ cp .env.example apps/api/.env
 cp .env.example apps/web/.env.local
 # Fill in required values in both .env files
 npm run dev
+```
+
+**Option B — Docker:**
+
+```bash
+docker compose up --build
+```
+
+**Option C — Podman:**
+
+```bash
+podman-compose -f podman-compose.yml up --build
 ```
 
 The API runs on `http://localhost:4000` and the web app on `http://localhost:3000`.

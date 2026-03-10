@@ -1,0 +1,53 @@
+# Stage 1: Build
+FROM docker.io/library/node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+COPY agentic-ai/package.json ./agentic-ai/
+
+RUN npm ci --workspace=agentic-ai
+
+COPY agentic-ai/ ./agentic-ai/
+
+WORKDIR /app/agentic-ai
+RUN npx tsc
+
+# Remove devDependencies after building
+WORKDIR /app
+RUN npm prune --omit=dev --workspace=agentic-ai
+
+# Stage 2: Production runner
+FROM docker.io/library/node:20-alpine AS runner
+
+RUN apk add --no-cache dumb-init
+
+# Create nonroot user and group
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/agentic-ai/package.json ./agentic-ai/
+COPY --from=builder /app/agentic-ai/dist/ ./agentic-ai/dist/
+COPY --from=builder /app/agentic-ai/src/prompts/ ./agentic-ai/dist/prompts/
+COPY --from=builder /app/node_modules/ ./node_modules/
+COPY --from=builder /app/agentic-ai/node_modules/ ./agentic-ai/node_modules/
+
+WORKDIR /app/agentic-ai
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:5200/health || exit 1
+
+ENV NODE_ENV=production
+
+EXPOSE 5200
+
+USER nonroot
+
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]

@@ -1,5 +1,5 @@
 # Stage 1: Install dependencies
-FROM node:20-alpine AS deps
+FROM docker.io/library/node:20-alpine AS deps
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY packages/shared-types/package.json ./packages/shared-types/
 RUN npm ci --workspace=apps/web --workspace=packages/shared-types
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM docker.io/library/node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -44,7 +44,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx next build
 
 # Stage 3: Production runner
-FROM node:20-alpine AS runner
+FROM docker.io/library/node:20-alpine AS runner
 
 RUN apk add --no-cache dumb-init
 

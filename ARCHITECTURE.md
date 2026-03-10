@@ -984,7 +984,7 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph Dev["docker-compose.yml"]
+    subgraph Dev["docker-compose.yml / podman-compose.yml"]
         D_MONGO["MongoDB :27017"]
         D_API["API :4000<br/><i>tsx watch (hot reload)</i>"]
         D_WEB["Web :3000<br/><i>next dev (HMR)</i>"]
@@ -992,7 +992,7 @@ graph LR
         D_AI["Agentic AI :5200<br/><i>tsx watch</i>"]
     end
 
-    subgraph Prod["docker-compose.prod.yml"]
+    subgraph Prod["docker-compose.prod.yml / podman-compose.prod.yml"]
         P_NGINX["Nginx :80/:443"]
         P_MONGO["MongoDB :27017"]
         P_API["API :4000<br/><i>node dist/index.js</i>"]
@@ -1001,7 +1001,7 @@ graph LR
         P_AI["Agentic AI :5200<br/><i>node dist/index.js</i>"]
     end
 
-    Dev -- "npm run build<br/>docker compose -f prod" --> Prod
+    Dev -- "build &amp; deploy" --> Prod
 
     style Dev fill:#1e293b,stroke:#f59e0b,color:#e2e8f0
     style Prod fill:#1e293b,stroke:#10b981,color:#e2e8f0

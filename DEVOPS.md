@@ -50,7 +50,7 @@ Comprehensive documentation of all DevOps, infrastructure, and operational conce
 
 ## Architecture Overview
 
-WealthWise is a full-stack monorepo application built with a decoupled frontend/backend architecture, containerized with Docker, and reverse-proxied through Nginx in production.
+WealthWise is a full-stack monorepo application built with a decoupled frontend/backend architecture, containerized with Docker and Podman, and reverse-proxied through Nginx in production.
 
 ```mermaid
 graph TB
@@ -120,9 +120,12 @@ sequenceDiagram
 wealthwise/
 ├── apps/
 │   ├── api/                        # Express 4 REST API
-│   │   ├── Dockerfile              # Dev multi-stage build
-│   │   ├── Dockerfile.prod         # Hardened production build
+│   │   ├── Dockerfile              # Docker dev multi-stage build
+│   │   ├── Dockerfile.prod         # Docker hardened production build
+│   │   ├── Containerfile           # Podman dev multi-stage build
+│   │   ├── Containerfile.prod      # Podman hardened production build
 │   │   ├── .dockerignore
+│   │   ├── .containerignore        # Podman build context exclusions
 │   │   ├── package.json            # @wealthwise/api
 │   │   ├── tsconfig.json           # CommonJS output
 │   │   ├── vitest.config.ts        # 30s timeout (mongodb-memory-server)
@@ -143,9 +146,12 @@ wealthwise/
 │   │           └── demo.seed.ts
 │   │
 │   └── web/                        # Next.js 14 App Router
-│       ├── Dockerfile              # Dev multi-stage build
-│       ├── Dockerfile.prod         # Hardened production build
+│       ├── Dockerfile              # Docker dev multi-stage build
+│       ├── Dockerfile.prod         # Docker hardened production build
+│       ├── Containerfile           # Podman dev multi-stage build
+│       ├── Containerfile.prod      # Podman hardened production build
 │       ├── .dockerignore
+│       ├── .containerignore        # Podman build context exclusions
 │       ├── package.json            # @wealthwise/web
 │       ├── next.config.js          # standalone output, transpilePackages
 │       ├── tsconfig.json           # ESNext, bundler resolution
@@ -161,9 +167,12 @@ wealthwise/
 │   ├── nginx.conf                  # Development config
 │   └── nginx.prod.conf             # Production config (SSL, rate limiting)
 │
-├── docker-compose.yml              # Development
-├── docker-compose.prod.yml         # Basic production
-├── docker-compose.production.yml   # Hardened production
+├── docker-compose.yml              # Docker development
+├── docker-compose.prod.yml         # Docker basic production
+├── docker-compose.production.yml   # Docker hardened production
+├── podman-compose.yml              # Podman development
+├── podman-compose.prod.yml         # Podman production (hardened)
+├── .containerignore                # Podman root build context exclusions
 ├── turbo.json                      # Turborepo pipeline config
 ├── Makefile                        # Build & operations automation
 ├── .env.example                    # Environment template
@@ -207,7 +216,7 @@ graph LR
     end
 
     subgraph Infrastructure
-        Docker[Docker + Compose]
+        Docker[Docker/Podman + Compose]
         NginxI[Nginx]
         DumbInit[dumb-init]
     end
@@ -245,9 +254,11 @@ graph LR
 
 ## Docker Infrastructure
 
+> **Podman users**: Dedicated `podman-compose.yml` and `podman-compose.prod.yml` files are provided alongside Docker Compose files. Containerfiles (Podman's naming convention) mirror Dockerfiles with fully-qualified image references (`docker.io/library/...`). Use `podman-compose` instead of `docker compose` and reference the `podman-compose*.yml` files. The `scripts/podman-build.sh` script builds all production images with Podman.
+
 ### Development Environment
 
-The development Docker setup prioritizes fast iteration with hot-reload support and direct port access.
+The development Docker/Podman setup prioritizes fast iteration with hot-reload support and direct port access.
 
 ```mermaid
 graph TB
@@ -435,7 +446,11 @@ graph LR
     style WebImage fill:#6366f1,color:#fff
 ```
 
-**Build context note**: Both Dockerfiles copy from the project root to access `packages/shared-types`. The `.dockerignore` files exclude `node_modules`, `.git`, `.env*`, tests, coverage, and IDE files to keep build context small.
+**Build context note**: Both Dockerfiles (and Containerfiles) copy from the project root to access `packages/shared-types`. The `.dockerignore` and `.containerignore` files exclude `node_modules`, `.git`, `.env*`, tests, coverage, and IDE files to keep build context small.
+
+**Build scripts:**
+- `scripts/docker-build.sh` — builds API and Web production images with Docker
+- `scripts/podman-build.sh` — builds API, Web, MCP, and Agentic AI production images with Podman
 
 ---
 
@@ -1205,6 +1220,10 @@ graph TD
         B1["docker compose up --build"] --> B2["MongoDB on :27017<br/>API on :4000<br/>Web on :3000"]
     end
 
+    subgraph "Option C: Podman"
+        C1["podman-compose -f podman-compose.yml up --build"] --> C2["MongoDB on :27017<br/>API on :4000<br/>Web on :3000"]
+    end
+
     style A3 fill:#10b981,color:#fff
     style B2 fill:#10b981,color:#fff
 ```
@@ -1221,6 +1240,11 @@ graph TD
 2. Starts MongoDB (persistent volume)
 3. All services restart on failure
 4. Useful for testing Docker-specific behavior
+
+**Podman development** (`podman-compose -f podman-compose.yml up --build`):
+1. Same behavior as Docker but uses Containerfiles with fully-qualified image refs
+2. Uses `podman-compose` (install via `pip install podman-compose`)
+3. Rootless by default for improved security
 
 ### Production Deployment
 
@@ -1582,6 +1606,21 @@ graph TD
 | **MongoDB exposed** | Host `:27017` | Internal only | Internal only |
 | **Restart policy** | `unless-stopped` | `always` | `always` |
 | **Recommended for** | Local development | Quick staging | Production |
+
+### Podman Compose File Comparison
+
+| Feature | `podman-compose.yml` | `podman-compose.prod.yml` |
+|---------|:--------------------:|:-------------------------:|
+| **Purpose** | Development | Hardened production |
+| **Container files** | `Containerfile` | `Containerfile.prod` |
+| **Image references** | Fully-qualified (`docker.io/library/...`) | Fully-qualified |
+| **Nginx** | No | Yes |
+| **Health checks** | No | All services |
+| **Resource limits** | No | Yes |
+| **Security options** | No | `no-new-privileges` |
+| **Startup order** | Basic `depends_on` | `condition: service_healthy` |
+| **Rootless** | Yes (Podman default) | Yes |
+| **Build script** | — | `scripts/podman-build.sh` |
 
 ### Complete Environment Variable Flow
 

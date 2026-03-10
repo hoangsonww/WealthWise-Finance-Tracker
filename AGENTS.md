@@ -57,7 +57,7 @@ Skills are in `.agents/skills/`. Invoke them with `$skill-name` or let Codex mat
 | `db-seed` | `$db-seed [demo]` | Seeding the database |
 | `test-coverage` | `$test-coverage [api\|web\|types]` | Running tests with coverage reporting |
 | `pre-pr` | `$pre-pr` | Pre-PR checklist before opening a PR |
-| `docker-up` | `$docker-up [prod\|down\|logs]` | Managing the Docker dev environment |
+| `docker-up` | `$docker-up [prod\|down\|logs]` | Managing the Docker/Podman dev environment |
 | `health-check` | `$health-check` | Verifying API, web, and MongoDB are running |
 
 ---

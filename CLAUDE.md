@@ -167,11 +167,15 @@ See `.env.example` for all required variables. Key ones:
 
 ---
 
-## Docker
+## Docker / Podman
 
-- `docker-compose.yml` - development (hot-reload, volume mounts)
-- `docker-compose.prod.yml` - production (Nginx reverse proxy, production builds)
-- Web output mode is `standalone` for Docker (`next.config.js`).
+- `docker-compose.yml` - Docker development (hot-reload, volume mounts)
+- `docker-compose.prod.yml` - Docker production (Nginx reverse proxy, production builds)
+- `docker-compose.production.yml` - Docker hardened production (healthchecks, resource limits, security_opt)
+- `podman-compose.yml` - Podman development (uses Containerfiles, fully-qualified image refs)
+- `podman-compose.prod.yml` - Podman production (healthchecks, resource limits, Nginx)
+- Containerfiles (`Containerfile`, `Containerfile.prod`) mirror Dockerfiles with fully-qualified `docker.io/library/` image refs
+- Web output mode is `standalone` for Docker/Podman (`next.config.js`).
 
 ---
 

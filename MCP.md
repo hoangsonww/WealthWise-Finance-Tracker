@@ -7,6 +7,7 @@
 [![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongoose&logoColor=white)](https://mongoosejs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/build/building/multi-stage/)
+[![Podman](https://img.shields.io/badge/Podman-Ready-892ca0?logo=podman&logoColor=white)](https://podman.io/)
 
 A **Model Context Protocol (MCP)** server that exposes WealthWise's financial data as structured tools and resources for AI agents. It implements the [MCP specification](https://modelcontextprotocol.io/) (JSON-RPC 2.0) with SSE and stdio transports, connects directly to MongoDB using the same Mongoose schemas as the REST API, and scopes every operation to the authenticated user via JWT.
 
@@ -271,12 +272,23 @@ CMD ["node", "dist/index.js"]
 ```
 
 ```bash
-# Build the image
+# Build the image (Docker)
 docker build -t wealthwise-mcp ./mcp
+
+# Build the image (Podman)
+podman build -f mcp/Containerfile -t wealthwise-mcp ./mcp
 
 # Run with SSE transport
 docker run -p 5100:5100 \
   -e MONGODB_URI=mongodb://host.docker.internal:27017/wealthwise \
+  -e JWT_SECRET=your-secret-here-minimum-32-chars \
+  -e MCP_TRANSPORT=sse \
+  -e NODE_ENV=production \
+  wealthwise-mcp
+
+# Or with Podman (use host.containers.internal instead of host.docker.internal)
+podman run -p 5100:5100 \
+  -e MONGODB_URI=mongodb://host.containers.internal:27017/wealthwise \
   -e JWT_SECRET=your-secret-here-minimum-32-chars \
   -e MCP_TRANSPORT=sse \
   -e NODE_ENV=production \

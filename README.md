@@ -444,7 +444,7 @@ GOOGLE_CLIENT_SECRET=
 ```bash
 docker compose up mongodb -d
 # or, with Podman:
-podman compose up mongodb -d
+podman-compose -f podman-compose.yml up mongodb -d
 ```
 
 **Option B - Local install:**
@@ -656,23 +656,27 @@ sequenceDiagram
 
 ## Docker Deployment
 
-WealthWise is fully containerized with Docker and includes compose files for both development and production environments. The production setup uses multi-stage builds for optimized images and includes an Nginx reverse proxy configuration. Podman users can use the same compose files with `podman compose` commands.
+WealthWise is fully containerized and includes compose files for both development and production environments. The production setup uses multi-stage builds for optimized images and includes an Nginx reverse proxy configuration. Both Docker and Podman are supported with dedicated compose files and Containerfiles.
 
 Additionally, the project includes Kubernetes manifests and Helm charts for orchestration in cloud environments, as well as Terraform modules for infrastructure provisioning across AWS, Azure, GCP, and Oracle Cloud.
 
 ### Development
 
+**Docker:**
 ```bash
 docker compose up
-# or, with Podman:
-podman compose up
 ```
 
-Starts MongoDB, API, and Web with hot-reload and volume mounts.
+**Podman:**
+```bash
+podman-compose -f podman-compose.yml up
+```
+
+Starts MongoDB, API, Web, MCP, and Agentic AI with hot-reload and volume mounts.
 
 ### Production
 
-Two production compose files are available:
+**Docker** — two production compose files are available:
 
 ```bash
 # Standard production (multi-stage Dockerfiles, Nginx reverse proxy)
@@ -682,12 +686,10 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.production.yml up -d
 ```
 
-Or, with Podman:
+**Podman:**
 
 ```bash
-podman compose -f docker-compose.prod.yml up -d
-
-podman compose -f docker-compose.production.yml up -d
+podman-compose -f podman-compose.prod.yml up -d
 ```
 
 ```mermaid
@@ -753,19 +755,25 @@ WealthWise includes production-grade infrastructure-as-code for four major cloud
 
 ### Hardened Production Docker
 
-Production Dockerfiles (`Dockerfile.prod`) include:
+Production Dockerfiles (`Dockerfile.prod`) and Containerfiles (`Containerfile.prod`) include:
 - **dumb-init** as PID 1 for proper signal handling
 - Non-root user (`nonroot`) for security
 - `HEALTHCHECK` directives for container orchestrators
 - Multi-stage builds with `--omit=dev` for minimal images
 - `STOPSIGNAL SIGTERM` for graceful shutdown
+- Fully-qualified image references (`docker.io/library/...`) for Podman compatibility
 
 ```bash
-# Build production images
+# Build production images (Docker)
 ./scripts/docker-build.sh
 
+# Build production images (Podman)
+./scripts/podman-build.sh
+
 # Run production stack
-docker compose -f docker-compose.production.yml up -d  # or, with Podman: podman compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml up -d
+# or, with Podman:
+podman-compose -f podman-compose.prod.yml up -d
 ```
 
 ### Kubernetes

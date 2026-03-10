@@ -20,6 +20,8 @@ SHELL := /bin/bash
 
 COMPOSE_DEV     := docker compose -f docker-compose.yml
 COMPOSE_PROD    := docker compose -f docker-compose.production.yml
+PODMAN_DEV      := podman-compose -f podman-compose.yml
+PODMAN_PROD     := podman-compose -f podman-compose.prod.yml
 TURBO           := npx turbo
 
 # Package filter names (must match package.json "name" fields)
@@ -308,6 +310,55 @@ prod-preflight: ## Validate environment before production deploy
 	echo -e "\n$(COLOR_GREEN)All preflight checks passed.$(COLOR_RESET)"
 
 # ------------------------------------------------------------------------------
+# Podman — Development
+# ------------------------------------------------------------------------------
+
+.PHONY: podman-build
+podman-build: ## Build development Podman images
+	$(PODMAN_DEV) build
+
+.PHONY: podman-up
+podman-up: ## Start development Podman stack
+	$(PODMAN_DEV) up -d
+
+.PHONY: podman-down
+podman-down: ## Stop development Podman stack
+	$(PODMAN_DEV) down
+
+.PHONY: podman-logs
+podman-logs: ## Tail development Podman logs
+	$(PODMAN_DEV) logs -f
+
+.PHONY: podman-ps
+podman-ps: ## Show development Podman container status
+	podman ps --filter label=io.podman.compose.project
+
+# ------------------------------------------------------------------------------
+# Podman — Production
+# ------------------------------------------------------------------------------
+
+.PHONY: podman-prod-build
+podman-prod-build: ## Build production Podman images (hardened)
+	$(PODMAN_PROD) build
+
+.PHONY: podman-prod-up
+podman-prod-up: ## Start production Podman stack (hardened, detached)
+	$(PODMAN_PROD) up -d
+	@echo -e "$(COLOR_GREEN)Production stack started with Podman.$(COLOR_RESET)"
+
+.PHONY: podman-prod-down
+podman-prod-down: ## Stop production Podman stack
+	$(PODMAN_PROD) down
+
+.PHONY: podman-prod-logs
+podman-prod-logs: ## Tail production Podman logs
+	$(PODMAN_PROD) logs -f
+
+.PHONY: podman-prod-deploy
+podman-prod-deploy: prod-preflight podman-prod-build podman-prod-up ## Full Podman production deploy (preflight → build → up)
+	@echo -e "$(COLOR_GREEN)Podman production deployment complete.$(COLOR_RESET)"
+
+# ------------------------------------------------------------------------------
 # Cleanup
 # ------------------------------------------------------------------------------
 
@@ -359,15 +410,17 @@ ssl-check: ## Check SSL certificate expiry date
 	fi
 
 .PHONY: disk-usage
-disk-usage: ## Show Docker disk usage
-	docker system df
+disk-usage: ## Show Docker/Podman disk usage
+	@docker system df 2>/dev/null || podman system df 2>/dev/null || echo "Neither Docker nor Podman found"
 
 .PHONY: versions
 versions: ## Show versions of key tools
 	@echo -e "$(COLOR_BLUE)Tool Versions:$(COLOR_RESET)"
-	@echo -n "  Node.js:    " && node --version 2>/dev/null || echo "not installed"
-	@echo -n "  npm:        " && npm --version 2>/dev/null || echo "not installed"
-	@echo -n "  Docker:     " && docker --version 2>/dev/null || echo "not installed"
-	@echo -n "  Compose:    " && docker compose version 2>/dev/null || echo "not installed"
-	@echo -n "  Turbo:      " && npx turbo --version 2>/dev/null || echo "not installed"
-	@echo -n "  TypeScript: " && npx tsc --version 2>/dev/null || echo "not installed"
+	@echo -n "  Node.js:       " && node --version 2>/dev/null || echo "not installed"
+	@echo -n "  npm:           " && npm --version 2>/dev/null || echo "not installed"
+	@echo -n "  Docker:        " && docker --version 2>/dev/null || echo "not installed"
+	@echo -n "  Compose:       " && docker compose version 2>/dev/null || echo "not installed"
+	@echo -n "  Podman:        " && podman --version 2>/dev/null || echo "not installed"
+	@echo -n "  podman-compose:" && podman-compose --version 2>/dev/null || echo " not installed"
+	@echo -n "  Turbo:         " && npx turbo --version 2>/dev/null || echo "not installed"
+	@echo -n "  TypeScript:    " && npx tsc --version 2>/dev/null || echo "not installed"

@@ -1,0 +1,68 @@
+# Stage 1: Build
+FROM docker.io/library/node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root workspace files
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+
+# Copy package files
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared-types/package.json ./packages/shared-types/
+COPY packages/shared-types/ ./packages/shared-types/
+
+# Install all dependencies (including dev for building)
+RUN npm ci --workspace=apps/api --workspace=packages/shared-types
+
+# Copy source files
+COPY apps/api/ ./apps/api/
+
+# Build shared-types first, then api
+WORKDIR /app/packages/shared-types
+RUN npx tsc
+
+WORKDIR /app/apps/api
+RUN npx tsc
+
+# Remove devDependencies after building so the runner only receives production deps.
+WORKDIR /app
+RUN npm prune --omit=dev --workspace=apps/api --workspace=packages/shared-types
+
+# Stage 2: Production runner
+FROM docker.io/library/node:20-alpine AS runner
+
+RUN apk add --no-cache dumb-init
+
+# Create nonroot user and group
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /app
+
+# Copy production node_modules from builder stage (npm workspaces hoists deps to root)
+COPY --from=builder /app/node_modules/ ./node_modules/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+
+# Copy built shared-types
+COPY --from=builder /app/packages/shared-types/ ./packages/shared-types/
+
+# Copy compiled API code
+COPY --from=builder /app/apps/api/dist/ ./apps/api/dist/
+
+WORKDIR /app/apps/api
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api/health || exit 1
+
+ENV NODE_ENV=production
+
+EXPOSE 4000
+
+USER nonroot
+
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]
