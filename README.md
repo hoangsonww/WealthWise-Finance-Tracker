@@ -23,6 +23,7 @@
 [![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongoose&logoColor=white)](https://mongoosejs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Podman](https://img.shields.io/badge/Podman-Compose-2496ed?logo=podman&logoColor=white)](https://podman.io/)
 [![Nginx](https://img.shields.io/badge/Nginx-Reverse_Proxy-009639?logo=nginx&logoColor=white)](https://nginx.org/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
@@ -54,48 +55,62 @@
 
 A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, categories, budgets, goals, recurring bills, and analytics with a responsive interface, CSV import, and polished dashboard workflows.
 
-WealthWise also features an **MCP Server** exposing 35 financial tools for AI agents and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
+WealthWise also features an **MCP Server** exposing 35 financial tools for AI agents and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker/Podman** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, **Oracle Cloud**, and **GCP**.
 
 ---
 
 ## Table of Contents
 
-- [High-Level Architecture](#high-level-architecture)
-- [Features](#features)
-- [User Interface](#user-interface)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [1. Clone and install](#1-clone-and-install)
-  - [2. Configure environment](#2-configure-environment)
-  - [3. Start MongoDB](#3-start-mongodb)
-  - [4. Seed default data](#4-seed-default-data)
-  - [5. Start development](#5-start-development)
-- [Scripts](#scripts)
-- [Testing](#testing)
-- [API Documentation](#api-documentation)
-  - [Endpoints](#endpoints)
-  - [Request Lifecycle](#request-lifecycle)
-- [Database Schema](#database-schema)
-- [Authentication Flow](#authentication-flow)
-- [Docker Deployment](#docker-deployment)
-  - [Development](#development)
-  - [Production](#production)
-- [MCP Server](#mcp-server)
-- [Agentic AI](#agentic-ai)
-- [Cloud Deployment & Infrastructure](#cloud-deployment--infrastructure)
-  - [Hardened Production Docker](#hardened-production-docker)
-  - [Kubernetes](#kubernetes)
-  - [Helm Chart](#helm-chart)
-  - [Terraform Modules](#terraform-modules)
-  - [Cloud Providers](#cloud-providers)
-  - [Production Nginx](#production-nginx)
-  - [Utility Scripts](#utility-scripts)
-  - [GitHub Actions CI/CD](#github-actions)
-- [Test Coverage](#test-coverage)
-- [Tech Stack](#tech-stack)
-- [License](#license)
-- [Creator](#creator)
+- [WealthWise - Personal Finance Manager](#wealthwise---personal-finance-manager)
+  - [Table of Contents](#table-of-contents)
+  - [High-Level Architecture](#high-level-architecture)
+  - [Features](#features)
+  - [User Interface](#user-interface)
+    - [1. Landing Page](#1-landing-page)
+    - [2. Dashboard](#2-dashboard)
+    - [3. Transactions](#3-transactions)
+    - [4. Budgets](#4-budgets)
+    - [5. Goals](#5-goals)
+    - [6. Accounts](#6-accounts)
+    - [7. Recurring](#7-recurring)
+    - [8. Analytics](#8-analytics)
+    - [9. Categories](#9-categories)
+    - [10. AI Advisor](#10-ai-advisor)
+    - [11. Settings](#11-settings)
+  - [Project Structure](#project-structure)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [1. Clone and install](#1-clone-and-install)
+    - [2. Configure environment](#2-configure-environment)
+    - [3. Start MongoDB](#3-start-mongodb)
+    - [4. Seed default data](#4-seed-default-data)
+    - [5. Start development](#5-start-development)
+  - [Scripts](#scripts)
+  - [Testing](#testing)
+  - [API Documentation](#api-documentation)
+    - [Endpoints](#endpoints)
+    - [Request Lifecycle](#request-lifecycle)
+    - [Example CSV File for Transaction Import](#example-csv-file-for-transaction-import)
+  - [Database Schema](#database-schema)
+  - [Authentication Flow](#authentication-flow)
+  - [Docker Deployment](#docker-deployment)
+    - [Development](#development)
+    - [Production](#production)
+  - [MCP Server](#mcp-server)
+  - [Agentic AI](#agentic-ai)
+  - [Cloud Deployment \& Infrastructure](#cloud-deployment--infrastructure)
+    - [Hardened Production Docker](#hardened-production-docker)
+    - [Kubernetes](#kubernetes)
+    - [Helm Chart](#helm-chart)
+    - [Terraform Modules](#terraform-modules)
+    - [Cloud Providers](#cloud-providers)
+    - [Production Nginx](#production-nginx)
+    - [Utility Scripts](#utility-scripts)
+    - [GitHub Actions](#github-actions)
+  - [Test Coverage](#test-coverage)
+  - [Tech Stack](#tech-stack)
+  - [License](#license)
+  - [Creator](#creator)
 
 ---
 
@@ -425,9 +440,11 @@ GOOGLE_CLIENT_SECRET=
 
 ### 3. Start MongoDB
 
-**Option A - Docker:**
+**Option A - Docker/Podman:**
 ```bash
 docker compose up mongodb -d
+# or, with Podman:
+podman compose up mongodb -d
 ```
 
 **Option B - Local install:**
@@ -639,10 +656,16 @@ sequenceDiagram
 
 ## Docker Deployment
 
+WealthWise is fully containerized with Docker and includes compose files for both development and production environments. The production setup uses multi-stage builds for optimized images and includes an Nginx reverse proxy configuration. Podman users can use the same compose files with `podman compose` commands.
+
+Additionally, the project includes Kubernetes manifests and Helm charts for orchestration in cloud environments, as well as Terraform modules for infrastructure provisioning across AWS, Azure, GCP, and Oracle Cloud.
+
 ### Development
 
 ```bash
 docker compose up
+# or, with Podman:
+podman compose up
 ```
 
 Starts MongoDB, API, and Web with hot-reload and volume mounts.
@@ -657,6 +680,14 @@ docker compose -f docker-compose.prod.yml up -d
 
 # Hardened production (Dockerfile.prod with dumb-init, health checks, resource limits)
 docker compose -f docker-compose.production.yml up -d
+```
+
+Or, with Podman:
+
+```bash
+podman compose -f docker-compose.prod.yml up -d
+
+podman compose -f docker-compose.production.yml up -d
 ```
 
 ```mermaid
@@ -734,7 +765,7 @@ Production Dockerfiles (`Dockerfile.prod`) include:
 ./scripts/docker-build.sh
 
 # Run production stack
-docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml up -d  # or, with Podman: podman compose -f docker-compose.production.yml up -d
 ```
 
 ### Kubernetes
