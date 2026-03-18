@@ -19,7 +19,8 @@
     "express-rate-limit": "^7.4.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^9.6.0",
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "@wealthwise/context-engineering": "*"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

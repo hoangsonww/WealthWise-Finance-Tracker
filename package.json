@@ -14,7 +14,8 @@
     "apps/*",
     "packages/*",
     "mcp",
-    "agentic-ai"
+    "agentic-ai",
+    "context-engineering"
   ],
   "scripts": {
     "dev": "turbo dev",

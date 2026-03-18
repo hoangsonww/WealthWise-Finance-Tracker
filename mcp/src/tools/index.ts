@@ -6,6 +6,7 @@ import { registerGoalTools } from "./goals.tool";
 import { registerCategoryTools } from "./categories.tool";
 import { registerRecurringTools } from "./recurring.tool";
 import { registerAnalyticsTools } from "./analytics.tool";
+import { registerContextTools } from "./context.tool";
 
 export function registerAllTools(server: McpServer, getUserId: () => string): void {
   registerAccountTools(server, getUserId);
@@ -15,4 +16,5 @@ export function registerAllTools(server: McpServer, getUserId: () => string): vo
   registerCategoryTools(server, getUserId);
   registerRecurringTools(server, getUserId);
   registerAnalyticsTools(server, getUserId);
+  registerContextTools(server, getUserId);
 }

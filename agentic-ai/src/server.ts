@@ -7,9 +7,10 @@ import { createAgentRoutes } from "./routes/agent.routes";
 import { createHealthRoutes } from "./routes/health.routes";
 import { McpClientManager } from "./mcp/client";
 import { ConversationManager } from "./conversation/manager";
+import { initContextIntegration } from "./context/context-integration";
 import { logger } from "./utils/logger";
 
-export function createServer(env: Env) {
+export async function createServer(env: Env) {
   const app = express();
 
   app.use(cors());
@@ -25,6 +26,22 @@ export function createServer(env: Env) {
   const conversationManager = new ConversationManager();
 
   conversationManager.startCleanup();
+
+  // Initialize context integration if enabled
+  if (env.CONTEXT_ENABLED) {
+    try {
+      const contextIntegration = initContextIntegration({
+        mongoUri: env.MONGODB_URI,
+      });
+      await contextIntegration.initialize();
+      logger.info("Context integration initialized");
+    } catch (error) {
+      logger.warn(
+        { error },
+        "Failed to initialize context integration, agents will use base prompts only"
+      );
+    }
+  }
 
   app.use(createHealthRoutes());
 

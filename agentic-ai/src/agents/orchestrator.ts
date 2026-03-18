@@ -66,7 +66,8 @@ export class OrchestratorAgent extends BaseAgent {
     userMessage: string,
     tools: ClaudeTool[],
     mcpClient: Client,
-    conversationHistory: Message[]
+    conversationHistory: Message[],
+    userId?: string
   ): Promise<AgentResponse> {
     const decision = await this.route(userMessage);
     logger.info({ decision }, "Routing to specialist agent");
@@ -81,7 +82,7 @@ export class OrchestratorAgent extends BaseAgent {
       };
     }
 
-    const result = await agent.run(userMessage, tools, mcpClient, conversationHistory);
+    const result = await agent.run(userMessage, tools, mcpClient, conversationHistory, userId);
 
     return {
       ...result,

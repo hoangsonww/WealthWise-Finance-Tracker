@@ -6,11 +6,14 @@ Project-level instructions for Claude Code. These supplement the global `~/.clau
 
 ## Project Overview
 
-WealthWise is a full-stack personal finance app built as a **Turborepo monorepo** with three packages:
+WealthWise is a full-stack personal finance app built as a **Turborepo monorepo** with six packages:
 
 - `apps/api` - Express 4 REST API (TypeScript, Mongoose, MongoDB)
 - `apps/web` - Next.js 14 App Router (React 18, Tailwind CSS, shadcn/ui)
 - `packages/shared-types` - Zod schemas and inferred TypeScript types
+- `mcp` - MCP server (43 tools, 6 resources) for AI agent data access
+- `agentic-ai` - Claude-powered AI agents (orchestrator + 4 specialists)
+- `context-engineering` - Knowledge graph, knowledge base, context engine, and D3 visualization UI
 
 ---
 
@@ -28,6 +31,9 @@ WealthWise is a full-stack personal finance app built as a **Turborepo monorepo*
 | Format | `npm run format` |
 | Seed categories | `npm run db:seed` |
 | Seed demo data | `npm run db:seed -- demo` |
+| Run context-engineering tests | `npx turbo test --filter=@wealthwise/context-engineering` |
+| Seed knowledge base | `npm run seed --workspace=context-engineering` |
+| Context engineering UI | `http://localhost:5300/ui` (when context-engineering dev is running) |
 
 ---
 
@@ -38,6 +44,9 @@ When filtering with Turborepo, use the `name` field from each `package.json`:
 - `@wealthwise/api`
 - `@wealthwise/web`
 - `@wealthwise/shared-types`
+- `@wealthwise/mcp`
+- `@wealthwise/agentic-ai`
+- `@wealthwise/context-engineering`
 
 ---
 
@@ -119,7 +128,10 @@ Pattern for a new page:
 - `apps/api`: 138 tests (services, middleware, utilities)
 - `apps/web`: 41 tests (utility functions)
 - `packages/shared-types`: 151 tests (all Zod schemas)
-- **Total: 330 tests**
+- `mcp`: 62 tests (tools, resources, auth)
+- `agentic-ai`: 31 tests (agents, routing, MCP client)
+- `context-engineering`: 75 tests (knowledge graph, traversal, knowledge base, context engine)
+- **Total: 498 tests**
 
 ### Writing Tests
 - Test files go in `__tests__/` directories adjacent to source.
