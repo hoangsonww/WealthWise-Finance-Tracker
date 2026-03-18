@@ -161,6 +161,8 @@ Examples:
 - `npm ci`
 - `docker compose ps`
 - `docker compose logs`
+- `podman ps`
+- `podman-compose` (read-only operations)
 - `curl -sf ...` for localhost health checks
 - Read-only git commands such as `git status`, `git diff`, `git log`, and `git show`
 - `git add`
@@ -173,6 +175,7 @@ These are treated as normal development operations.
 Examples:
 - `npm install ...`
 - `docker compose up/down/restart/build`
+- `podman-compose up/down/restart/build`
 - `git commit`
 - `git checkout`
 - `git merge`

@@ -1,8 +1,6 @@
-version: "3.8"
-
 services:
   mongodb:
-    image: mongo:7
+    image: docker.io/library/mongo:7
     container_name: wealthwise-mongodb-prod
     volumes:
       - mongodb_data_prod:/data/db
@@ -34,7 +32,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile.prod
+      dockerfile: apps/api/Containerfile.prod
     container_name: wealthwise-api-prod
     expose:
       - "4000"
@@ -76,7 +74,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile.prod
+      dockerfile: apps/web/Containerfile.prod
     container_name: wealthwise-web-prod
     expose:
       - "3000"
@@ -117,7 +115,7 @@ services:
   mcp:
     build:
       context: .
-      dockerfile: mcp/Dockerfile.prod
+      dockerfile: mcp/Containerfile.prod
     container_name: wealthwise-mcp-prod
     expose:
       - "5100"
@@ -158,7 +156,7 @@ services:
   agentic-ai:
     build:
       context: .
-      dockerfile: agentic-ai/Dockerfile.prod
+      dockerfile: agentic-ai/Containerfile.prod
     container_name: wealthwise-agentic-ai-prod
     expose:
       - "5200"
@@ -197,7 +195,7 @@ services:
         max-file: "3"
 
   nginx:
-    image: nginx:alpine
+    image: docker.io/library/nginx:alpine
     container_name: wealthwise-nginx-prod
     ports:
       - "80:80"

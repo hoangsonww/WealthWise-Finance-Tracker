@@ -21,9 +21,13 @@ curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000/
 ```
 Expected: HTTP 200.
 
-### 3. Check Docker (if running in containers)
+### 3. Check containers (if running in Docker or Podman)
 ```
-docker compose ps
+# Try Docker first
+docker compose ps 2>/dev/null
+
+# If Docker is not available, try Podman
+podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
 ```
 Show the status of all containers and their health checks.
 
@@ -40,7 +44,7 @@ MongoDB (via API):       ✓ connected |  ✗ disconnected
 
 ## On failure
 If any service is unreachable:
-1. Check if the process is running: `docker compose ps` or check for Node processes
-2. Show recent logs: `docker compose logs --tail=30 <service>`
+1. Check if the process is running: `docker compose ps` or `podman ps` or check for Node processes
+2. Show recent logs: `docker compose logs --tail=30 <service>` or `podman logs --tail=30 <container>`
 3. Check for port conflicts: note which process is using the port
 4. Suggest the fix: either start the service or kill the conflicting process

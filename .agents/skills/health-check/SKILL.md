@@ -22,9 +22,13 @@ curl -sf -o /dev/null -w "%{http_code}" http://localhost:3000/
 ```
 Expected: HTTP 200.
 
-### 3. Docker containers (if running)
+### 3. Containers (if running in Docker or Podman)
 ```bash
+# Try Docker first
 docker compose ps 2>/dev/null
+
+# If Docker is not available, try Podman
+podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null
 ```
 
 ### 4. MongoDB (inferred from API health)
@@ -38,13 +42,13 @@ Service          Status    Notes
 API (port 4000)  ✓ up   |  ✗ unreachable
 Web (port 3000)  ✓ up   |  ✗ unreachable
 MongoDB          ✓ connected | ✗ disconnected (via API health)
-Docker           ✓ running X/3 containers | ✗ daemon not running
+Docker/Podman    ✓ running X/N containers | ✗ daemon not running
 ```
 
 ## On failure
 
 If a service is down:
-1. Check Docker status: `docker compose ps`
-2. Show recent logs: `docker compose logs --tail=30 <service>`
+1. Check container status: `docker compose ps` or `podman ps`
+2. Show recent logs: `docker compose logs --tail=30 <service>` or `podman logs --tail=30 <container>`
 3. Check for port conflicts
 4. Suggest the correct command to start: `$docker-up`

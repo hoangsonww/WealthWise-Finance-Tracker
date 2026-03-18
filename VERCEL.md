@@ -40,3 +40,6 @@ Frontend UI configuration:
 3. Output Directory: `apps/web/.next`
 4. Root Directory: (Leave blank)
 5. Environment Variables: Set any necessary environment variables for the frontend in the Vercel dashboard. See [apps/web/.env.example](apps/web/.env.example) for reference.
+
+> [!TIP]
+> Because the `vercel.json` file is included in `.gitignore` by default, it won't break automated frontend deployments on Vercel, meaning you might not need to delete `vercel.json` when deploying your frontend to Vercel anymore, as long as you connect your Vercel frontend project to your GitHub repo instead of deploying it locally via the Vercel CLI.

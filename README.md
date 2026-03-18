@@ -23,6 +23,7 @@
 [![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongoose&logoColor=white)](https://mongoosejs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Podman](https://img.shields.io/badge/Podman-Compose-2496ed?logo=podman&logoColor=white)](https://podman.io/)
 [![Nginx](https://img.shields.io/badge/Nginx-Reverse_Proxy-009639?logo=nginx&logoColor=white)](https://nginx.org/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
@@ -54,7 +55,7 @@
 
 A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, categories, budgets, goals, recurring bills, and analytics with a responsive interface, CSV import, and polished dashboard workflows.
 
-WealthWise also features an **MCP Server** exposing 43 financial tools and 6 resources, a **Context Engineering** service/package for graph-based financial context assembly, and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
+WealthWise also features an **MCP Server** exposing 43 financial tools and 6 resources, a **Context Engineering** service/package for graph-based financial context assembly, and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker/Podman** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
 
 ---
 
@@ -452,9 +453,11 @@ GOOGLE_CLIENT_SECRET=
 
 ### 3. Start MongoDB
 
-**Option A - Docker:**
+**Option A - Docker/Podman:**
 ```bash
 docker compose up mongodb -d
+# or, with Podman:
+podman-compose -f podman-compose.yml up mongodb -d
 ```
 
 **Option B - Local install:**
@@ -672,17 +675,27 @@ sequenceDiagram
 
 ## Docker Deployment
 
+WealthWise is fully containerized and includes compose files for both development and production environments. The production setup uses multi-stage builds for optimized images and includes an Nginx reverse proxy configuration. Both Docker and Podman are supported with dedicated compose files and Containerfiles.
+
+Additionally, the project includes Kubernetes manifests and Helm charts for orchestration in cloud environments, as well as Terraform modules for infrastructure provisioning across AWS, Azure, GCP, and Oracle Cloud.
+
 ### Development
 
+**Docker:**
 ```bash
 docker compose up
 ```
 
-Starts MongoDB, API, and Web with hot-reload and volume mounts.
+**Podman:**
+```bash
+podman-compose -f podman-compose.yml up
+```
+
+Starts MongoDB, API, Web, MCP, and Agentic AI with hot-reload and volume mounts.
 
 ### Production
 
-Two production compose files are available:
+**Docker** — two production compose files are available:
 
 ```bash
 # Standard production (multi-stage Dockerfiles, Nginx reverse proxy)
@@ -690,6 +703,12 @@ docker compose -f docker-compose.prod.yml up -d
 
 # Hardened production (Dockerfile.prod with dumb-init, health checks, resource limits)
 docker compose -f docker-compose.production.yml up -d
+```
+
+**Podman:**
+
+```bash
+podman-compose -f podman-compose.prod.yml up -d
 ```
 
 ```mermaid
@@ -794,19 +813,25 @@ WealthWise includes production-grade infrastructure-as-code for four major cloud
 
 ### Hardened Production Docker
 
-Production Dockerfiles (`Dockerfile.prod`) include:
+Production Dockerfiles (`Dockerfile.prod`) and Containerfiles (`Containerfile.prod`) include:
 - **dumb-init** as PID 1 for proper signal handling
 - Non-root user (`nonroot`) for security
 - `HEALTHCHECK` directives for container orchestrators
 - Multi-stage builds with `--omit=dev` for minimal images
 - `STOPSIGNAL SIGTERM` for graceful shutdown
+- Fully-qualified image references (`docker.io/library/...`) for Podman compatibility
 
 ```bash
-# Build production images
+# Build production images (Docker)
 ./scripts/docker-build.sh
+
+# Build production images (Podman)
+./scripts/podman-build.sh
 
 # Run production stack
 docker compose -f docker-compose.production.yml up -d
+# or, with Podman:
+podman-compose -f podman-compose.prod.yml up -d
 ```
 
 ### Kubernetes

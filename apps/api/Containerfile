@@ -1,0 +1,43 @@
+# Build stage
+FROM docker.io/library/node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root workspace files
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+
+# Copy package files for dependency installation
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Install dependencies
+RUN npm install --workspace=apps/api --workspace=packages/shared-types
+
+# Copy source files
+COPY packages/shared-types/ ./packages/shared-types/
+COPY apps/api/ ./apps/api/
+
+# Build
+WORKDIR /app/apps/api
+RUN npx tsc
+
+# Production stage
+FROM docker.io/library/node:20-alpine AS production
+
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+COPY --from=builder /app/packages/shared-types/ ./packages/shared-types/
+COPY --from=builder /app/apps/api/dist/ ./apps/api/dist/
+COPY --from=builder /app/node_modules/ ./node_modules/
+COPY --from=builder /app/apps/api/node_modules/ ./apps/api/node_modules/
+
+WORKDIR /app/apps/api
+
+ENV NODE_ENV=production
+
+EXPOSE 4000
+
+CMD ["node", "dist/index.js"]

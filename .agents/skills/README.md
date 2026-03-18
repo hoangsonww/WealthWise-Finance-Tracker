@@ -115,7 +115,7 @@ Key rules:
 Path: [`docker-up/SKILL.md`](./docker-up/SKILL.md)
 
 Purpose:
-- Manage the Docker Compose development or production environment
+- Manage the Docker/Podman Compose development or production environment
 
 Modes:
 - `dev`
@@ -125,7 +125,9 @@ Modes:
 - `logs`
 
 Key rules:
-- Check Docker daemon and port conflicts
+- Auto-detect Docker or Podman runtime
+- Check daemon and port conflicts
+- Use `podman-compose -f podman-compose.yml` when Podman is detected
 - Treat `down --volumes` as destructive
 - Report container health after start
 
@@ -134,12 +136,12 @@ Key rules:
 Path: [`health-check/SKILL.md`](./health-check/SKILL.md)
 
 Purpose:
-- Verify local API, web, Docker, and MongoDB health
+- Verify local API, web, Docker/Podman, and MongoDB health
 
 Checks:
 - API endpoint
 - web status code
-- Docker container status
+- Docker or Podman container status
 - MongoDB connectivity inferred through API health
 
 Key rules:

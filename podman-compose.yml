@@ -1,0 +1,92 @@
+services:
+  mongodb:
+    image: docker.io/library/mongo:7
+    container_name: wealthwise-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: wealthwise
+    networks:
+      - wealthwise-network
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Containerfile
+    container_name: wealthwise-api
+    ports:
+      - "4000:4000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/wealthwise
+      - JWT_SECRET=${JWT_SECRET:-wealthwise-dev-jwt-secret-change-in-prod-32chars}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-wealthwise-dev-refresh-secret-change-in-prod}
+      - API_PORT=4000
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      - mongodb
+    networks:
+      - wealthwise-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Containerfile
+    container_name: wealthwise-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-wealthwise-dev-nextauth-secret}
+      - API_URL=http://api:4000
+    depends_on:
+      - api
+    networks:
+      - wealthwise-network
+    restart: unless-stopped
+
+  mcp:
+    build:
+      context: .
+      dockerfile: mcp/Containerfile
+    container_name: wealthwise-mcp
+    ports:
+      - "5100:5100"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/wealthwise
+      - JWT_SECRET=${JWT_SECRET:-wealthwise-dev-jwt-secret-change-in-prod-32chars}
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=5100
+    depends_on:
+      - mongodb
+    networks:
+      - wealthwise-network
+    restart: unless-stopped
+
+  agentic-ai:
+    build:
+      context: .
+      dockerfile: agentic-ai/Containerfile
+    container_name: wealthwise-agentic-ai
+    ports:
+      - "5200:5200"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MCP_SERVER_URL=http://mcp:5100
+      - JWT_SECRET=${JWT_SECRET:-wealthwise-dev-jwt-secret-change-in-prod-32chars}
+      - AGENT_PORT=5200
+    depends_on:
+      - mcp
+    networks:
+      - wealthwise-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  wealthwise-network:
+    driver: bridge

@@ -23,6 +23,7 @@
 [![Mongoose](https://img.shields.io/badge/Mongoose-8-880000?logo=mongoose&logoColor=white)](https://mongoosejs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Podman](https://img.shields.io/badge/Podman-Compose-2496ed?logo=podman&logoColor=white)](https://podman.io/)
 [![Nginx](https://img.shields.io/badge/Nginx-Reverse_Proxy-009639?logo=nginx&logoColor=white)](https://nginx.org/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
@@ -83,7 +84,7 @@
 - [Context Engineering Architecture](#context-engineering-architecture)
 - [Agentic AI Architecture](#agentic-ai-architecture)
 - [Deployment Architecture](#deployment-architecture)
-  - [Production (Docker Compose)](#production-docker-compose)
+  - [Production (Docker/Podman Compose)](#production-dockerpodman-compose)
   - [Nginx Routing](#nginx-routing)
   - [Development vs Production](#development-vs-production)
 - [Shared Types Contract](#shared-types-contract)
@@ -994,7 +995,7 @@ sequenceDiagram
 
 ## Deployment Architecture
 
-### Production (Docker Compose)
+### Production (Docker/Podman Compose)
 
 ```mermaid
 graph TD
@@ -1042,7 +1043,7 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph Dev["docker-compose.yml"]
+    subgraph Dev["docker-compose.yml / podman-compose.yml"]
         D_MONGO["MongoDB :27017"]
         D_API["API :4000<br/><i>tsx watch (hot reload)</i>"]
         D_WEB["Web :3000<br/><i>next dev (HMR)</i>"]
@@ -1050,7 +1051,7 @@ graph LR
         D_AI["Agentic AI :5200<br/><i>tsx watch</i>"]
     end
 
-    subgraph Prod["docker-compose.prod.yml"]
+    subgraph Prod["docker-compose.prod.yml / podman-compose.prod.yml"]
         P_NGINX["Nginx :80/:443"]
         P_MONGO["MongoDB :27017"]
         P_API["API :4000<br/><i>node dist/index.js</i>"]
@@ -1059,7 +1060,7 @@ graph LR
         P_AI["Agentic AI :5200<br/><i>node dist/index.js</i>"]
     end
 
-    Dev -- "npm run build<br/>docker compose -f prod" --> Prod
+    Dev -- "build &amp; deploy" --> Prod
 
     style Dev fill:#1e293b,stroke:#f59e0b,color:#e2e8f0
     style Prod fill:#1e293b,stroke:#10b981,color:#e2e8f0

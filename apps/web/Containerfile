@@ -1,0 +1,41 @@
+# Build stage
+FROM docker.io/library/node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root workspace files
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+
+# Copy package files for dependency installation
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared-types/package.json ./packages/shared-types/
+
+# Install dependencies
+RUN npm install --workspace=apps/web --workspace=packages/shared-types
+
+# Copy source files
+COPY packages/shared-types/ ./packages/shared-types/
+COPY apps/web/ ./apps/web/
+
+# Build Next.js
+WORKDIR /app/apps/web
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npx next build
+
+# Production stage
+FROM docker.io/library/node:20-alpine AS production
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Copy necessary files
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+
+CMD ["node", "apps/web/server.js"]

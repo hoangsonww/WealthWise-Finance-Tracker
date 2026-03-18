@@ -7,6 +7,7 @@
 [![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![Podman](https://img.shields.io/badge/Podman-Ready-892ca0?logo=podman&logoColor=white)](https://podman.io/)
 
 An **agentic AI service** for WealthWise, powered by Anthropic's Claude. Four specialized financial agents consume MCP tools from the WealthWise MCP server to access real user financial data, analyze it through multi-step tool-use loops, and return actionable insights — all behind the same JWT authentication as the main API.
 
@@ -288,6 +289,10 @@ npx turbo lint --filter=@wealthwise/agentic-ai
 # Run with Docker
 docker build -f agentic-ai/Dockerfile -t wealthwise-agentic-ai .
 docker run -p 5200:5200 --env-file .env wealthwise-agentic-ai
+
+# Run with Podman
+podman build -f agentic-ai/Containerfile -t wealthwise-agentic-ai .
+podman run -p 5200:5200 --env-file .env wealthwise-agentic-ai
 ```
 
 > [!NOTE]
