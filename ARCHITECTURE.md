@@ -80,6 +80,7 @@
 - [Analytics Pipeline](#analytics-pipeline)
   - [Budget Summary Flow](#budget-summary-flow)
 - [MCP Server Architecture](#mcp-server-architecture)
+- [Context Engineering Architecture](#context-engineering-architecture)
 - [Agentic AI Architecture](#agentic-ai-architecture)
 - [Deployment Architecture](#deployment-architecture)
   - [Production (Docker Compose)](#production-docker-compose)
@@ -121,8 +122,15 @@ graph TB
         end
 
         subgraph MCPServer["mcp/ - MCP Server"]
-            MCPTools["35 Tools · 4 Resources"]
+            MCPTools["43 Tools · 6 Resources"]
             MCPTransport["SSE + stdio Transport"]
+        end
+
+        subgraph ContextEngineering["context-engineering/"]
+            CEGraph["KnowledgeGraph + Traversal + Query"]
+            CEKb["KnowledgeBase (BM25)"]
+            CEEngine["ContextEngine + PromptAssembler"]
+            CEUI["Context API + D3 UI"]
         end
 
         subgraph AgenticAI["agentic-ai/ - Agentic AI"]
@@ -146,14 +154,21 @@ graph TB
     AdvisorSvc --> Gemini
     MW -. "validates input" .-> ZS
     ZS --> TS
+    DB --> CEGraph
+    CEGraph --> CEEngine
+    CEKb --> CEEngine
+    CEEngine --> CEUI
+    MCPTools --> CEGraph
     Orchestrator --> Specialists --> ClaudeAPI
     ClaudeAPI -- "tool_use" --> MCPTransport
     MCPTransport --> MCPTools --> DB
+    Specialists --> CEEngine
 
     style Frontend fill:#0f172a,stroke:#6366f1,color:#e2e8f0
     style Backend fill:#0f172a,stroke:#10b981,color:#e2e8f0
     style Shared fill:#0f172a,stroke:#f59e0b,color:#e2e8f0
     style MCPServer fill:#0f172a,stroke:#4f46e5,color:#e2e8f0
+    style ContextEngineering fill:#0f172a,stroke:#06b6d4,color:#e2e8f0
     style AgenticAI fill:#0f172a,stroke:#cc785c,color:#e2e8f0
     style DB fill:#0f172a,stroke:#47a248,color:#e2e8f0
     style Gemini fill:#0f172a,stroke:#4285f4,color:#e2e8f0
@@ -165,6 +180,7 @@ There are now two distinct AI surfaces in the system:
 
 - The in-app `/advisor` experience is served by `apps/api`, which builds a live finance context from MongoDB and calls Gemini for grounded chat plus confirmation-based action planning.
 - The separate `agentic-ai/` service remains Claude-powered and MCP-backed for specialist agent workflows.
+- The shared `context-engineering/` package/service provides graph/knowledge retrieval and token-budgeted context assembly, reused by MCP and agentic-ai integrations.
 
 > [!NOTE]
 > The frontend is deployed on Vercel at: **[https://wealthwisefinancial.vercel.app/](https://wealthwisefinancial.vercel.app/).** You can register a new account or use the following demo credentials to explore the app:
@@ -185,6 +201,8 @@ There are now two distinct AI surfaces in the system:
 graph LR
     ST["packages/shared-types"] --> API["apps/api"]
     ST --> WEB["apps/web"]
+    CE["context-engineering/"] --> MCP_PKG["mcp/"]
+    CE --> AI_PKG["agentic-ai/"]
     MCP_PKG["mcp/"] --> DB_DIRECT["MongoDB (direct)"]
     AI_PKG["agentic-ai/"] --> MCP_PKG
 
@@ -198,6 +216,7 @@ graph LR
     style ST fill:#f59e0b,stroke:#000,color:#000
     style API fill:#10b981,stroke:#000,color:#000
     style WEB fill:#6366f1,stroke:#000,color:#fff
+    style CE fill:#06b6d4,stroke:#000,color:#000
     style MCP_PKG fill:#4f46e5,stroke:#000,color:#fff
     style AI_PKG fill:#cc785c,stroke:#000,color:#fff
 ```
@@ -210,7 +229,7 @@ graph LR
 | `test`  | -                              | -                        | Yes    |
 | `clean` | -                              | -                        | No     |
 
-`apps/web` and `apps/api` both depend on `packages/shared-types`. Turbo builds shared-types first, then builds both apps in parallel. `mcp/` and `agentic-ai/` are independent packages that do not depend on shared-types; `agentic-ai/` connects to the MCP server at runtime.
+`apps/web` and `apps/api` both depend on `packages/shared-types`. Turbo builds shared-types first, then builds both apps in parallel. `context-engineering/` is a standalone package consumed by `mcp/` and `agentic-ai/`. `agentic-ai/` also connects to `mcp/` at runtime.
 
 ---
 
@@ -785,8 +804,8 @@ The MCP server implements the [Model Context Protocol](https://modelcontextproto
 graph LR
     CLIENT["MCP Client<br/>(Agentic AI / external)"] --> TRANSPORT["Transport Layer<br/>SSE :5100 · stdio"]
     TRANSPORT --> SERVER["McpServer<br/>@modelcontextprotocol/sdk"]
-    SERVER --> TOOLS["Tools (35)"]
-    SERVER --> RES["Resources (4)"]
+    SERVER --> TOOLS["Tools (43)"]
+    SERVER --> RES["Resources (6)"]
     TOOLS --> MODELS["Mongoose Models"]
     RES --> MODELS
     MODELS --> DB[(MongoDB)]
@@ -800,26 +819,29 @@ graph LR
     style DB fill:#47a248,stroke:#000,color:#fff
 ```
 
-### Tools (35 across 7 modules)
+### Tools (43 across 8 modules)
 
 | Module | Tools | Examples |
 |--------|-------|---------|
-| Accounts | 5 | `list_accounts`, `get_account`, `create_account`, `update_account`, `delete_account` |
-| Transactions | 5 | `list_transactions`, `get_transaction`, `create_transaction`, `update_transaction`, `delete_transaction` |
-| Categories | 5 | `list_categories`, `get_category`, `create_category`, `update_category`, `delete_category` |
-| Budgets | 5 | `list_budgets`, `get_budget`, `create_budget`, `update_budget`, `delete_budget` |
-| Goals | 5 | `list_goals`, `get_goal`, `create_goal`, `update_goal`, `add_funds_to_goal` |
-| Recurring | 5 | `list_recurring_rules`, `get_recurring_rule`, `create_recurring_rule`, `update_recurring_rule`, `delete_recurring_rule` |
-| Analytics | 5 | `spending_by_category`, `income_vs_expense`, `monthly_summary`, `net_worth`, `spending_trends` |
+| Accounts | 6 | `list_accounts`, `get_account`, `create_account`, `update_account`, `archive_account`, `get_balance_history` |
+| Transactions | 6 | `list_transactions`, `search_transactions`, `create_transaction`, `get_transaction`, `update_transaction`, `delete_transaction` |
+| Budgets | 4 | `list_budgets`, `create_budget`, `update_budget`, `get_budget_summary` |
+| Goals | 5 | `list_goals`, `create_goal`, `update_goal`, `delete_goal`, `add_goal_funds` |
+| Categories | 2 | `list_categories`, `create_category` |
+| Recurring | 5 | `list_recurring`, `create_recurring`, `get_upcoming_bills`, `mark_recurring_paid`, `delete_recurring` |
+| Analytics | 7 | `spending_by_category`, `income_vs_expense`, `monthly_summary`, `get_trends`, `spending_by_day_of_week`, `category_monthly_breakdown`, `get_net_worth` |
+| Context | 8 | `build_knowledge_graph`, `query_knowledge_graph`, `get_related_entities`, `find_financial_path`, `search_financial_knowledge`, `get_financial_context`, `get_graph_statistics`, `get_financial_clusters` |
 
-### Resources (4)
+### Resources (6)
 
 | Resource URI | Description |
 |-------------|-------------|
-| `wealthwise://schema/accounts` | Account schema metadata |
-| `wealthwise://schema/transactions` | Transaction schema metadata |
-| `wealthwise://summary/accounts` | Account summary with balances |
-| `wealthwise://summary/budgets` | Budget summary with spending progress |
+| `wealthwise://summary` | Monthly financial summary and balances |
+| `wealthwise://budget-status` | Budget utilization and remaining amounts |
+| `wealthwise://goal-progress` | Goal completion progress |
+| `wealthwise://upcoming-bills` | Recurring payments due soon |
+| `wealthwise://knowledge-graph` | Context-engineering graph statistics and top entities |
+| `wealthwise://financial-knowledge` | Financial knowledge-base categories and entries |
 
 ### Auth Flow
 
@@ -842,6 +864,51 @@ sequenceDiagram
     Server-->>Transport: Tool result (JSON)
     Transport-->>Client: SSE event
 ```
+
+---
+
+## Context Engineering Architecture
+
+`@wealthwise/context-engineering` provides the retrieval/assembly layer used by AI-capable services.
+
+```mermaid
+graph TB
+    DB[(MongoDB)] --> ING[IngestionPipeline]
+    ING --> MAP[Financial Data Mapper]
+    MAP --> GB[GraphBuilder]
+    GB --> KG[KnowledgeGraph]
+    FR[Financial Rules] --> KB[KnowledgeBase BM25]
+    KG --> RET[ContextRetriever]
+    KB --> RET
+    RET --> CE[ContextEngine]
+    CE --> PA[PromptAssembler]
+    CE --> HTTP[Context API :5300]
+    CE --> UI[D3 UI /ui]
+    CE --> MCPCTX[MCP Context Tools]
+    CE --> AICTX[Agentic ContextIntegration]
+```
+
+```mermaid
+sequenceDiagram
+    participant U as User Request
+    participant CE as ContextEngine
+    participant RET as ContextRetriever
+    participant GQ as GraphQueryEngine
+    participant KB as KnowledgeBase
+    participant OUT as ContextWindow
+
+    U->>CE: assembleContext(userId, agentType, message, history)
+    CE->>RET: retrieve(userId, intent/message)
+    RET->>GQ: select intent query (budget/spending/goal/anomaly/account/full)
+    GQ-->>RET: graph result
+    RET->>KB: BM25 search(query)
+    KB-->>RET: ranked entries
+    RET-->>CE: graph + knowledge + combined context
+    CE->>CE: fit components to token budget by priority
+    CE-->>OUT: ContextWindow(system/user/graph/knowledge/conversation)
+```
+
+The service is exposed directly (`context-engineering/src/index.ts`) and also consumed as a library by both MCP (`mcp/src/tools/context.tool.ts`, `mcp/src/resources/knowledge-graph.ts`) and agentic-ai (`agentic-ai/src/context/context-integration.ts`).
 
 ---
 
@@ -1062,11 +1129,11 @@ graph TD
 ## Testing Strategy
 
 ```mermaid
-pie title Test Distribution (442 total)
-    "Shared Types - Schema Validation" : 162
-    "API - Services & Business Logic" : 106
-    "MCP - Tools & Resources" : 61
-    "API - Middleware & Utilities" : 41
+pie title Test Distribution (498 total)
+    "Shared Types - Schema Validation" : 151
+    "API - Services & Business Logic" : 138
+    "Context Engineering - Graph/KB/Context" : 75
+    "MCP - Tools & Resources" : 62
     "Web - Utility Functions" : 41
     "Agentic AI - Agents & Pipeline" : 31
 ```
@@ -1078,6 +1145,7 @@ pie title Test Distribution (442 total)
 | **API utilities**   | Vitest                          | ApiError factories, pagination helpers            |
 | **Shared schemas**  | Vitest                          | Every Zod schema: valid, invalid, edge cases      |
 | **Web utilities**   | Vitest + jsdom                  | Formatting, class merging, helpers                |
+| **Context engineering** | Vitest                      | Graph builder/query/traversal, BM25 KB, context assembly |
 | **MCP tools**       | Vitest + mongodb-memory-server  | Tool handlers, resource providers, auth resolver  |
 | **Agentic AI**      | Vitest                          | Agent orchestration, classification, MCP client   |
 
@@ -1087,10 +1155,11 @@ pie title Test Distribution (442 total)
 graph LR
     CMD["npm run test"] --> TURBO["Turborepo<br/><i>runs in parallel</i>"]
 
-    TURBO --> ST_TEST["shared-types<br/>vitest (node)<br/><b>162 tests</b>"]
-    TURBO --> API_TEST["api<br/>vitest (node)<br/><b>147 tests</b>"]
+    TURBO --> ST_TEST["shared-types<br/>vitest (node)<br/><b>151 tests</b>"]
+    TURBO --> API_TEST["api<br/>vitest (node)<br/><b>138 tests</b>"]
     TURBO --> WEB_TEST["web<br/>vitest (jsdom)<br/><b>41 tests</b>"]
-    TURBO --> MCP_TEST["mcp<br/>vitest (node)<br/><b>61 tests</b>"]
+    TURBO --> CE_TEST["context-engineering<br/>vitest (node)<br/><b>75 tests</b>"]
+    TURBO --> MCP_TEST["mcp<br/>vitest (node)<br/><b>62 tests</b>"]
     TURBO --> AI_TEST["agentic-ai<br/>vitest (node)<br/><b>31 tests</b>"]
 
     API_TEST --> MMS["MongoMemoryServer<br/><i>in-memory MongoDB</i>"]
@@ -1101,6 +1170,7 @@ graph LR
     style ST_TEST fill:#f59e0b,stroke:#000,color:#000
     style API_TEST fill:#10b981,stroke:#000,color:#fff
     style WEB_TEST fill:#8b5cf6,stroke:#000,color:#fff
+    style CE_TEST fill:#06b6d4,stroke:#000,color:#000
     style MCP_TEST fill:#4f46e5,stroke:#000,color:#fff
     style AI_TEST fill:#cc785c,stroke:#000,color:#fff
 ```

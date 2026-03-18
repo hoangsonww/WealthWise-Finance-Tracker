@@ -6,6 +6,12 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   AGENT_PORT: z.coerce.number().default(5200),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  MONGODB_URI: z.string().optional().default("mongodb://localhost:27017/wealthwise"),
+  CONTEXT_ENABLED: z
+    .string()
+    .optional()
+    .default("true")
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -62,7 +62,7 @@ export function createAgentRoutes(
       const history = conversationManager.getHistory(userId);
       const conversation = conversationManager.getOrCreate(userId);
 
-      const result = await orchestrator.run(message, claudeTools, mcpClient, history);
+      const result = await orchestrator.run(message, claudeTools, mcpClient, history, userId);
 
       conversationManager.addMessage(userId, "user", message);
       conversationManager.addMessage(userId, "assistant", result.response);
@@ -117,7 +117,7 @@ export function createAgentRoutes(
       const claudeTools = mcpToolsToClaudeTools(mcpTools);
 
       const agent = agents[agentName];
-      const result = await agent.run(prompt, claudeTools, mcpClient, []);
+      const result = await agent.run(prompt, claudeTools, mcpClient, [], userId);
 
       costTracker.trackUsage(
         userId,
@@ -161,7 +161,8 @@ export function createAgentRoutes(
           "Give me a brief financial summary: health score, top concern, and one actionable recommendation. Keep it under 200 words.",
           claudeTools,
           mcpClient,
-          []
+          [],
+          userId
         );
 
         costTracker.trackUsage(

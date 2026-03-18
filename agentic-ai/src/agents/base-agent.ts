@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { executeToolViaMcp, ClaudeTool } from "../mcp/tool-adapter";
+import { getContextIntegration } from "../context/context-integration";
 import { logger } from "../utils/logger";
 import * as fs from "fs";
 import * as path from "path";
@@ -39,8 +40,43 @@ export abstract class BaseAgent {
     userMessage: string,
     tools: ClaudeTool[],
     mcpClient: Client,
-    conversationHistory: Message[]
+    conversationHistory: Message[],
+    userId?: string
   ): Promise<AgentResponse> {
+    // Get enhanced system prompt if context integration is available
+    let systemPrompt = this.getSystemPrompt();
+
+    if (userId) {
+      const contextIntegration = getContextIntegration();
+      if (contextIntegration) {
+        try {
+          const contextWindow = await contextIntegration.assembleContext({
+            userId,
+            agentType: this.name,
+            userMessage,
+            conversationHistory: conversationHistory.map((m) => ({
+              role: m.role,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+            })),
+          });
+
+          // Append context to system prompt
+          systemPrompt = `${systemPrompt}\n\n## Current Financial Context\n\n${contextWindow.graphContext}\n\n## Relevant Financial Knowledge\n\n${contextWindow.knowledgeContext}`;
+
+          logger.info(
+            {
+              agent: this.name,
+              contextTokens: contextWindow.totalTokens,
+              graphNodes: contextWindow.metadata.components.length,
+            },
+            "Context injected into agent prompt"
+          );
+        } catch (error) {
+          logger.warn({ error, agent: this.name }, "Failed to assemble context, using base prompt");
+        }
+      }
+    }
+
     const messages: Message[] = [...conversationHistory, { role: "user", content: userMessage }];
 
     const toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
@@ -51,7 +87,7 @@ export abstract class BaseAgent {
       const response = await this.anthropic.messages.create({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        system: this.getSystemPrompt(),
+        system: systemPrompt,
         messages,
         tools: tools.length > 0 ? tools : undefined,
       });

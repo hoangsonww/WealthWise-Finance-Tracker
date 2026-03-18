@@ -20,7 +20,7 @@
       "mcp__git-intel__contributor_stats",
       "mcp__git-intel__risk_assessment",
       "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx tsc:*)",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx tsc:*)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npx tsc:*)",
     ]
   }
 }

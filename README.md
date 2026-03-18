@@ -54,7 +54,7 @@
 
 A full-stack personal finance application built with a **Turborepo monorepo**, featuring an **Express REST API**, a **Next.js 14** frontend, and **shared Zod schemas** for end-to-end type safety. Track accounts, transactions, categories, budgets, goals, recurring bills, and analytics with a responsive interface, CSV import, and polished dashboard workflows.
 
-WealthWise also features an **MCP Server** exposing 35 financial tools for AI agents and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
+WealthWise also features an **MCP Server** exposing 43 financial tools and 6 resources, a **Context Engineering** service/package for graph-based financial context assembly, and an **Agentic AI** service with 4 specialized Claude-powered financial advisors. The project includes comprehensive testing with **Vitest** and an interactive **Swagger UI** for API exploration. It is containerized with **Docker** and ready for production deployment with **Nginx**, **Kubernetes**, and cloud platforms like **AWS**, **Azure**, and **GCP**.
 
 ---
 
@@ -82,7 +82,9 @@ WealthWise also features an **MCP Server** exposing 35 financial tools for AI ag
   - [Development](#development)
   - [Production](#production)
 - [MCP Server](#mcp-server)
+- [Context Engineering](#context-engineering)
 - [Agentic AI](#agentic-ai)
+- [Technical Docs](#technical-docs)
 - [Cloud Deployment & Infrastructure](#cloud-deployment--infrastructure)
   - [Hardened Production Docker](#hardened-production-docker)
   - [Kubernetes](#kubernetes)
@@ -128,8 +130,15 @@ graph TB
         end
 
         subgraph MCP["mcp/ - MCP Server"]
-            MCPTools["35 Tools · 4 Resources"]
+            MCPTools["43 Tools · 6 Resources"]
             MCPTransport["SSE + stdio Transport"]
+        end
+
+        subgraph ContextEngineering["context-engineering/"]
+            CEGraph["KnowledgeGraph + Traversal + Query"]
+            CEKb["KnowledgeBase (BM25)"]
+            CEEngine["ContextEngine + PromptAssembler"]
+            CEApi["Context API + D3 UI"]
         end
 
         subgraph AgenticAI["agentic-ai/ - Agentic AI"]
@@ -153,14 +162,21 @@ graph TB
     AdvisorService --> Gemini
     MW -.->|"validates input"| Schemas
     Schemas --> Types
+    DB --> CEGraph
+    CEGraph --> CEEngine
+    CEKb --> CEEngine
+    CEEngine --> CEApi
+    MCPTools --> CEGraph
     Orchestrator --> Specialists --> ClaudeAPI
     ClaudeAPI -->|"tool_use"| MCPTransport
     MCPTransport --> MCPTools --> DB
+    Specialists --> CEEngine
 
     style Frontend fill:#0f172a,stroke:#6366f1,color:#e2e8f0
     style Backend fill:#0f172a,stroke:#10b981,color:#e2e8f0
     style Shared fill:#0f172a,stroke:#f59e0b,color:#e2e8f0
     style MCP fill:#0f172a,stroke:#4f46e5,color:#e2e8f0
+    style ContextEngineering fill:#0f172a,stroke:#06b6d4,color:#e2e8f0
     style AgenticAI fill:#0f172a,stroke:#cc785c,color:#e2e8f0
     style DB fill:#0f172a,stroke:#47a248,color:#e2e8f0
     style Gemini fill:#0f172a,stroke:#4285f4,color:#e2e8f0
@@ -183,7 +199,8 @@ graph TB
 - **Type-safe contracts** - Zod schemas shared between frontend and backend
 - **Interactive API docs** - Swagger UI at `/api/docs`
 - **In-app AI Advisor** - Gemini-backed chat grounded on live accounts, transactions, categories, budgets, goals, recurring rules, and real frontend workflow knowledge so it can explain exactly what to do in the app
-- **MCP Server** - Model Context Protocol server exposing 35 tools and 4 resources for AI agent consumption
+- **MCP Server** - Model Context Protocol server exposing 43 tools and 6 resources for AI agent consumption
+- **Context Engineering service** - graph-based financial context retrieval, BM25 knowledge search, token-budgeted context windows, and a D3 graph UI
 - **4 specialist AI agents** - financial advisor, anomaly detector, budget optimizer, and forecaster, orchestrated by an intent classifier
 
 > [!NOTE]
@@ -342,6 +359,16 @@ wealthwise/
 │   │   └── __tests__/         # 31 tests
 │   └── package.json
 │
+├── context-engineering/       # Context engineering service/package
+│   ├── src/
+│   │   ├── context/           # ContextEngine + PromptAssembler
+│   │   ├── graph/             # KnowledgeGraph, Traversal, Query, Builder
+│   │   ├── ingestion/         # MongoDB ingestion + data mapping
+│   │   ├── knowledge-base/    # Financial rules + BM25 retrieval
+│   │   ├── ui/                # D3 graph dashboard routes + static UI
+│   │   └── __tests__/         # Graph, KB, traversal, context tests
+│   └── package.json
+│
 ├── nginx/                     # Production reverse proxy config
 ├── helm/                      # Helm chart (alternative to Kustomize)
 │   └── wealthwise/            # Umbrella chart with per-env values files
@@ -467,6 +494,8 @@ This starts all services in parallel via Turborepo:
 - **Swagger** → http://localhost:4000/api/docs
 - **MCP** → http://localhost:5100
 - **Agentic AI** → http://localhost:5200
+- **Context Engineering** → http://localhost:5300
+- **Context Engineering UI** → http://localhost:5300/ui
 
 ---
 
@@ -476,30 +505,33 @@ This starts all services in parallel via Turborepo:
 |---------|-------------|
 | `npm run dev` | Start all apps in development mode |
 | `npm run build` | Build all packages |
-| `npm run test` | Run all test suites (442 tests) |
+| `npm run test` | Run all test suites across 6 packages |
 | `npm run lint` | Type-check all packages |
 | `npm run format` | Format all files with Prettier |
 | `npm run format:check` | Check formatting without writing |
 | `npm run db:seed` | Seed default categories |
 | `npm run clean` | Remove build artifacts and caches |
-| `npx turbo test --filter=@wealthwise/mcp` | Run MCP server tests (61 tests) |
+| `npx turbo test --filter=@wealthwise/mcp` | Run MCP server tests (62 tests) |
 | `npx turbo test --filter=@wealthwise/agentic-ai` | Run agentic AI tests (31 tests) |
+| `npx turbo test --filter=@wealthwise/context-engineering` | Run context-engineering tests |
 | `npx turbo build --filter=@wealthwise/mcp` | Build MCP server |
 | `npx turbo build --filter=@wealthwise/agentic-ai` | Build agentic AI service |
+| `npx turbo build --filter=@wealthwise/context-engineering` | Build context-engineering package |
 
 ---
 
 ## Testing
 
-The project has **442 tests** across all packages:
+The project has **498 tests** across all packages:
 
 | Package | Tests | Framework | Environment |
 |---------|-------|-----------|-------------|
-| `apps/api` | 147 | Vitest + mongodb-memory-server | Node |
+| `apps/api` | 138 | Vitest + mongodb-memory-server | Node |
 | `apps/web` | 41 | Vitest | jsdom |
-| `packages/shared-types` | 162 | Vitest | Node |
-| `mcp` | 61 | Vitest + mongodb-memory-server | Node |
+| `packages/shared-types` | 151 | Vitest | Node |
+| `mcp` | 62 | Vitest + mongodb-memory-server | Node |
 | `agentic-ai` | 31 | Vitest | Node |
+| `context-engineering` | 75 | Vitest | Node |
 
 ```bash
 # Run all tests
@@ -509,6 +541,7 @@ npm run test
 npx turbo test --filter=@wealthwise/api
 npx turbo test --filter=@wealthwise/web
 npx turbo test --filter=@wealthwise/shared-types
+npx turbo test --filter=@wealthwise/context-engineering
 ```
 
 **API tests** use an in-memory MongoDB instance - no external database required. They cover all services, middleware, utility classes, and validation logic.
@@ -692,14 +725,41 @@ graph TD
 
 ## MCP Server
 
-The MCP (Model Context Protocol) server exposes WealthWise's financial data as **35 tools** and **4 resources** for consumption by AI agents and LLM-powered applications. It supports both **SSE** (Server-Sent Events) and **stdio** transports.
+The MCP (Model Context Protocol) server exposes WealthWise's financial data as **43 tools** and **6 resources** for consumption by AI agents and LLM-powered applications. It supports both **SSE** (Server-Sent Events) and **stdio** transports.
 
 - **Port:** 5100
-- **Tools:** 35 tools across 7 modules (accounts, transactions, budgets, goals, categories, recurring rules, analytics)
-- **Resources:** 4 resources providing schema metadata and summary data
+- **Tools:** 43 tools across 8 modules (accounts, transactions, budgets, goals, categories, recurring, analytics, context)
+- **Resources:** 6 resources, including context-engineering-backed knowledge graph and financial knowledge resources
 - **Auth:** JWT token resolution - the same tokens used by the REST API
 
 For full details on tool definitions, resource URIs, transport configuration, and integration examples, see **[MCP.md](MCP.md)**.
+
+---
+
+## Context Engineering
+
+The `@wealthwise/context-engineering` package adds a dedicated context layer between raw finance data and AI behavior.
+
+- **Port:** 5300
+- **Core primitives:** `KnowledgeGraph`, `GraphTraversal`, `GraphQueryEngine`, `KnowledgeBase`, `ContextRetriever`, `ContextEngine`
+- **Data model:** typed nodes/edges across accounts, transactions, budgets, goals, categories, recurring payments, merchants, insights, tags, and time periods
+- **Retrieval:** intent-aware graph retrieval + BM25 knowledge search + token-budget fitting
+- **UI:** D3 knowledge graph dashboard at `/ui`
+
+```mermaid
+graph LR
+    DB[(MongoDB)] --> ING[IngestionPipeline]
+    ING --> GB[GraphBuilder]
+    GB --> KG[KnowledgeGraph]
+    KB[KnowledgeBase BM25] --> RET[ContextRetriever]
+    KG --> RET
+    RET --> CE[ContextEngine]
+    CE --> API[Context API / UI]
+    CE --> MCPCTX[MCP context tools]
+    CE --> AICTX[Agentic AI context integration]
+```
+
+For package-level endpoints, architecture, and module details, see **[context-engineering/README.md](context-engineering/README.md)**.
 
 ---
 
@@ -713,6 +773,18 @@ The Agentic AI service provides a separate conversational financial advisor powe
 - **Tool use:** Agents call MCP tools via the `tool_use` loop to fetch real user data before responding
 
 For full details on agent prompts, the orchestration pipeline, and API endpoints, see **[AGENTIC_AI.md](AGENTIC_AI.md)**.
+
+---
+
+## Technical Docs
+
+For deep implementation details (context contracts, integration sequences, caches, and operational patterns), see:
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - end-to-end system architecture
+- **[TECH_DOCS.md](TECH_DOCS.md)** - technical reference for the latest context-engineering and AI integration updates
+- **[DEVOPS.md](DEVOPS.md)** - deployment and operations guide
+- **[MCP.md](MCP.md)** - MCP tools/resources and transport details
+- **[AGENTIC_AI.md](AGENTIC_AI.md)** - orchestrator/specialist agent behavior
 
 ---
 
@@ -831,10 +903,11 @@ We also provide CI/CD workflows for automated testing, building, and deployment 
 ## Test Coverage
 
 ```mermaid
-pie title 442 Tests Across 5 Packages
-    "Shared Types (162)" : 162
-    "API (147)" : 147
-    "MCP (61)" : 61
+pie title 498 Tests Across 6 Packages
+    "Shared Types (151)" : 151
+    "API (138)" : 138
+    "Context Engineering (75)" : 75
+    "MCP (62)" : 62
     "Web (41)" : 41
     "Agentic AI (31)" : 31
 ```
@@ -859,6 +932,7 @@ pie title 442 Tests Across 5 Packages
 | **Testing**        | Vitest, mongodb-memory-server, Testing Library       |
 | **Formatting**     | Prettier + prettier-plugin-tailwindcss               |
 | **MCP Server**     | @modelcontextprotocol/sdk, Express 4, Mongoose 8     |
+| **Context Engineering** | KnowledgeGraph, BM25 KnowledgeBase, ContextEngine, D3 graph UI |
 | **In-App AI**      | Gemini via Google Generative Language API, Express 4 advisor service |
 | **Agentic AI**     | @anthropic-ai/sdk (Claude), MCP Client, Express 4   |
 | **AI Models**      | Gemini 2.5 Flash by default for `/advisor`, Claude Sonnet 4 for `agentic-ai` |
