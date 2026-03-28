@@ -1,0 +1,44 @@
+{
+  "project": "wealthwise",
+  "period": {
+    "start": "2026-03-28T14:30:00Z",
+    "end": "2026-03-28T15:00:00Z"
+  },
+  "agents": {
+    "total_registered": 4,
+    "active": 3,
+    "idle": 1
+  },
+  "beads": {
+    "total": 131,
+    "open": 128,
+    "in_progress": 1,
+    "closed": 2,
+    "completion_rate": 0.015
+  },
+  "sessions": {
+    "total": 3,
+    "active": 3,
+    "total_events": 49
+  },
+  "coordination": {
+    "total_messages": 10,
+    "total_threads": 4,
+    "file_reservations": 3,
+    "conflicts_detected": 0,
+    "cross_agent_reviews": 1
+  },
+  "git": {
+    "commits": 2,
+    "files_modified": 8,
+    "lines_added": 482,
+    "lines_removed": 45,
+    "destructive_commands_blocked": 0
+  },
+  "quality": {
+    "self_reviews_performed": 2,
+    "cross_reviews_performed": 1,
+    "bugs_found_in_review": 1,
+    "bugs_fixed": 1
+  }
+}
