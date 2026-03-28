@@ -96,6 +96,7 @@ WealthWise also features an **MCP Server** exposing 43 financial tools and 6 res
   - [Utility Scripts](#utility-scripts)
   - [GitHub Actions CI/CD](#github-actions)
 - [Test Coverage](#test-coverage)
+- [Agentic Coding Flywheel](#agentic-coding-flywheel)
 - [Tech Stack](#tech-stack)
 - [License](#license)
 - [Creator](#creator)
@@ -927,6 +928,8 @@ We also provide CI/CD workflows for automated testing, building, and deployment 
 
 ## Test Coverage
 
+WealthWise has a comprehensive test suite with **498 tests** across all packages, ensuring robust validation of functionality, data integrity, and edge cases.
+
 ```mermaid
 pie title 498 Tests Across 6 Packages
     "Shared Types (151)" : 151
@@ -936,6 +939,92 @@ pie title 498 Tests Across 6 Packages
     "Web (41)" : 41
     "Agentic AI (31)" : 31
 ```
+
+---
+
+## Agentic Coding Flywheel
+
+WealthWise integrates the [Agentic Coding Flywheel](https://agent-flywheel.com/) methodology for multi-agent development. This enables coordinated swarms of AI coding agents (Claude Code, Codex, Gemini-CLI) to work concurrently on the same codebase using structured task management and real-time coordination.
+
+### Core Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Beads** | `.beads/` | 131 self-contained work units with dependency graph (152 edges) |
+| **Agent Sessions** | `.agent-sessions/` | Multi-agent coordination: Agent Mail, file reservations, session logs |
+| **AGENTS.md** | `AGENTS.md` | Operating manual for all agents (rules, conventions, tool docs, lifecycle) |
+| **Bead Workflow Skill** | `.claude/skills/bead-workflow.md` | Reusable skill encoding the claim/implement/review/close lifecycle |
+
+### The Coordination Stack
+
+The system uses three interlocking tools that form a single coordination machine:
+
+```mermaid
+graph TB
+    subgraph CoordTriangle["Coordination Triangle"]
+        BR["Beads (br)<br/><i>Durable task state</i><br/>131 beads, 152 deps"]
+        BV["Beads Viewer (bv)<br/><i>Graph-theory compass</i><br/>PageRank + betweenness"]
+        AM["Agent Mail (am)<br/><i>Negotiation layer</i><br/>Messages + reservations"]
+    end
+
+    BR -->|"Dependency graph<br/>feeds routing"| BV
+    BV -->|"Next-bead picks<br/>drive claims"| BR
+    AM -->|"File reservations<br/>reference bead IDs"| BR
+    BR -->|"Bead IDs anchor<br/>all threads"| AM
+
+    style BR fill:#3B82F6,stroke:#000,color:#fff
+    style BV fill:#6366F1,stroke:#000,color:#fff
+    style AM fill:#10B981,stroke:#000,color:#fff
+```
+
+- **Beads (`br`)** -- Task structure with priorities, dependencies, labels, and embedded context. Stored as JSONL files that commit with the code.
+- **Beads Viewer (`bv`)** -- Graph-theory routing using PageRank, betweenness centrality, and critical-path analysis to determine the highest-leverage next task.
+- **Agent Mail (`am`)** -- Point-to-point messaging, advisory file reservations with TTL expiry, and threaded conversations anchored to bead IDs.
+
+### How It Works
+
+```mermaid
+graph LR
+    subgraph Planning["Plan Space"]
+        PLAN["Markdown Plan<br/><i>Multi-model synthesis</i>"]
+        ENCODE["Convert to Beads<br/><i>br create</i>"]
+        POLISH["Polish 4-6 Rounds<br/><i>Convergence check</i>"]
+    end
+
+    subgraph Execution["Code Space"]
+        LAUNCH["Launch Agents<br/><i>Staggered starts</i>"]
+        ROUTE["bv Routes Work<br/><i>Graph-theory triage</i>"]
+        IMPL["Implement + Review<br/><i>Claim → code → test</i>"]
+        CLOSE["Close Bead<br/><i>Commit + push</i>"]
+    end
+
+    subgraph Tend["Human Operator"]
+        MONITOR["Tend Swarm<br/><i>Every 10-15 min</i>"]
+    end
+
+    PLAN --> ENCODE --> POLISH --> LAUNCH
+    LAUNCH --> ROUTE --> IMPL --> CLOSE
+    CLOSE -->|"Next bead"| ROUTE
+    MONITOR -.->|"Rescue stuck agents<br/>Add missing beads"| ROUTE
+
+    style PLAN fill:#7C3AED,stroke:#000,color:#fff
+    style ENCODE fill:#EC4899,stroke:#000,color:#fff
+    style POLISH fill:#EC4899,stroke:#000,color:#fff
+    style LAUNCH fill:#F59E0B,stroke:#000,color:#000
+    style ROUTE fill:#6366F1,stroke:#000,color:#fff
+    style IMPL fill:#3B82F6,stroke:#000,color:#fff
+    style CLOSE fill:#10B981,stroke:#000,color:#fff
+    style MONITOR fill:#06B6D4,stroke:#000,color:#000
+```
+
+### Key Design Decisions
+
+- **Single-branch model**: All agents commit to `master`. No worktrees or feature branches per agent. Agent Mail file reservations prevent collisions.
+- **Fungible agents**: Every agent is a generalist. No role specialization. If one crashes, any other can resume from the bead state and thread history.
+- **Advisory file locks**: Reservations are coordination signals, not hard locks. TTL-based expiry prevents dead agents from blocking others.
+- **Bead IDs as threading anchors**: The bead ID (`br-XXX`) appears in Agent Mail threads, file reservation reasons, and git commit messages for end-to-end traceability.
+
+See [`.beads/README.md`](.beads/README.md) and [`.agent-sessions/README.md`](.agent-sessions/README.md) for detailed documentation.
 
 ---
 
