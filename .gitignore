@@ -45,3 +45,7 @@ npm-debug.log*
 
 .vercel
 vercel.json
+
+# Agent Sessions — ephemeral session logs (not the config/registry)
+.agent-sessions/sessions/*.jsonl
+.agent-sessions/metrics/summary.json

@@ -1,0 +1,56 @@
+{
+  "agents": [
+    {
+      "name": "ScarletCave",
+      "type": "claude-code",
+      "model": "claude-opus-4-6",
+      "status": "active",
+      "registered": "2026-03-28T14:30:00Z",
+      "last_seen": "2026-03-28T14:30:00Z",
+      "capabilities": ["backend", "frontend", "schema", "mcp", "ai", "context", "infra", "testing"],
+      "current_bead": null,
+      "beads_completed": 0,
+      "session_id": "session-001"
+    },
+    {
+      "name": "BlueLake",
+      "type": "claude-code",
+      "model": "claude-opus-4-6",
+      "status": "active",
+      "registered": "2026-03-28T14:31:00Z",
+      "last_seen": "2026-03-28T14:31:00Z",
+      "capabilities": ["backend", "frontend", "schema", "mcp", "ai", "context", "infra", "testing"],
+      "current_bead": null,
+      "beads_completed": 0,
+      "session_id": "session-002"
+    },
+    {
+      "name": "CoralBadger",
+      "type": "codex",
+      "model": "gpt-4.1",
+      "status": "active",
+      "registered": "2026-03-28T14:32:00Z",
+      "last_seen": "2026-03-28T14:32:00Z",
+      "capabilities": ["backend", "frontend", "schema", "testing", "infra"],
+      "current_bead": null,
+      "beads_completed": 0,
+      "session_id": "session-003"
+    },
+    {
+      "name": "JadePeak",
+      "type": "gemini-cli",
+      "model": "gemini-2.5-pro",
+      "status": "idle",
+      "registered": "2026-03-28T14:33:00Z",
+      "last_seen": "2026-03-28T14:33:00Z",
+      "capabilities": ["frontend", "testing", "data", "ux", "docs"],
+      "current_bead": null,
+      "beads_completed": 0,
+      "session_id": null
+    }
+  ],
+  "naming_style": "whimsical",
+  "max_agents": 12,
+  "fungible": true,
+  "specialization": "none"
+}

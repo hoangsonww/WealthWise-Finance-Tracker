@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "project_key": "wealthwise",
+  "project_name": "WealthWise Finance Tracker",
+  "created": "2026-03-28T14:30:00Z",
+  "coordination": {
+    "agent_mail_enabled": true,
+    "file_reservations_enabled": true,
+    "reservation_ttl_seconds": 3600,
+    "thread_prefix": "br-",
+    "broadcast_mode": "point-to-point",
+    "max_agents": 12
+  },
+  "session_defaults": {
+    "auto_register": true,
+    "compaction_reminder": true,
+    "agents_md_path": "AGENTS.md",
+    "post_compaction_action": "reread_agents_md"
+  },
+  "git": {
+    "branch_policy": "single-branch",
+    "target_branch": "master",
+    "commit_style": "logically-grouped",
+    "destructive_commands_blocked": true
+  },
+  "metrics": {
+    "track_beads_completed": true,
+    "track_session_duration": true,
+    "track_tokens_used": true,
+    "track_conflicts": true
+  }
+}

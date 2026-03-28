@@ -1,0 +1,152 @@
+{"from":"br-011","to":"br-021","type":"blocks","reason":"Analytics endpoints need pagination schemas"}
+{"from":"br-011","to":"br-022","type":"blocks","reason":"Paginated list endpoints need pagination schemas"}
+{"from":"br-011","to":"br-029","type":"blocks","reason":"Search results need pagination"}
+{"from":"br-011","to":"br-068","type":"blocks","reason":"MCP tool pagination needs schemas"}
+{"from":"br-011","to":"br-073","type":"blocks","reason":"Frontend infinite scroll needs pagination API"}
+{"from":"br-012","to":"br-023","type":"blocks","reason":"Bulk transaction API needs bulk schemas"}
+{"from":"br-012","to":"br-060","type":"blocks","reason":"MCP batch tools need bulk schemas"}
+{"from":"br-013","to":"br-031","type":"blocks","reason":"Webhook system needs event schemas"}
+{"from":"br-013","to":"br-069","type":"blocks","reason":"MCP webhook tool needs webhook schemas"}
+{"from":"br-014","to":"br-025","type":"blocks","reason":"Report generation needs report schemas"}
+{"from":"br-015","to":"br-033","type":"blocks","reason":"Notification service needs notification schemas"}
+{"from":"br-015","to":"br-072","type":"blocks","reason":"Frontend notification bell needs notification schemas"}
+{"from":"br-016","to":"br-040","type":"blocks","reason":"WebSocket server needs event schemas"}
+{"from":"br-017","to":"br-030","type":"blocks","reason":"Export endpoints need export schemas"}
+{"from":"br-017","to":"br-085","type":"blocks","reason":"Frontend export page needs export schemas"}
+{"from":"br-018","to":"br-032","type":"blocks","reason":"Import service needs import schemas"}
+{"from":"br-018","to":"br-077","type":"blocks","reason":"Frontend import wizard needs import schemas"}
+{"from":"br-019","to":"br-024","type":"blocks","reason":"Audit logging needs audit schemas"}
+{"from":"br-020","to":"br-034","type":"blocks","reason":"Settings API needs settings schemas"}
+{"from":"br-020","to":"br-078","type":"blocks","reason":"Frontend settings page needs settings schemas"}
+{"from":"br-021","to":"br-076","type":"blocks","reason":"Frontend analytics page needs analytics API"}
+{"from":"br-022","to":"br-073","type":"blocks","reason":"Transaction list infinite scroll needs paginated API"}
+{"from":"br-023","to":"br-032","type":"blocks","reason":"Import uses bulk create internally"}
+{"from":"br-025","to":"br-014","type":"blocked_by","reason":"Report generation needs report schemas first"}
+{"from":"br-027","to":"br-087","type":"blocks","reason":"Frontend net worth widget needs API"}
+{"from":"br-028","to":"br-086","type":"blocks","reason":"Frontend recurring page needs detection API"}
+{"from":"br-030","to":"br-085","type":"blocks","reason":"Frontend export page needs export API"}
+{"from":"br-032","to":"br-077","type":"blocks","reason":"Frontend import wizard needs import API"}
+{"from":"br-033","to":"br-072","type":"blocks","reason":"Frontend notification bell needs notification API"}
+{"from":"br-034","to":"br-078","type":"blocks","reason":"Frontend settings page needs settings API"}
+{"from":"br-034","to":"br-095","type":"blocks","reason":"AI custom prompts need user settings"}
+{"from":"br-040","to":"br-072","type":"blocks","reason":"Real-time notifications need WebSocket"}
+{"from":"br-050","to":"br-107","type":"blocks","reason":"K8s optimization needs health endpoints for probes"}
+{"from":"br-067","to":"br-068","type":"blocks","reason":"MCP pagination should use cache layer"}
+{"from":"br-071","to":"br-087","type":"blocks","reason":"Net worth widget goes on redesigned dashboard"}
+{"from":"br-090","to":"br-096","type":"blocks","reason":"Multi-agent collaboration needs persistent conversations"}
+{"from":"br-090","to":"br-097","type":"blocks","reason":"Context-aware responses need persistent state"}
+{"from":"br-094","to":"br-096","type":"blocks","reason":"Multi-agent needs optimized token usage"}
+{"from":"br-097","to":"br-098","type":"blocks","reason":"Proactive insights need context integration"}
+{"from":"br-100","to":"br-097","type":"blocks","reason":"AI context integration needs persistent graph"}
+{"from":"br-101","to":"br-102","type":"blocks","reason":"Deployment pipeline needs CI pipeline first"}
+{"from":"br-101","to":"br-120","type":"blocks","reason":"E2E tests should run in CI"}
+{"from":"br-103","to":"br-114","type":"blocks","reason":"CORS hardening builds on security headers"}
+{"from":"br-106","to":"br-105","type":"blocks","reason":"Metrics middleware benefits from structured logging"}
+{"from":"br-110","to":"br-101","type":"blocks","reason":"CI should validate env vars"}
+{"from":"br-120","to":"br-123","type":"blocks","reason":"Accessibility tests extend E2E suite"}
+{"from":"br-120","to":"br-125","type":"blocks","reason":"Visual regression extends E2E suite"}
+{"from":"br-001","to":"br-021","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-022","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-023","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-024","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-025","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-026","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-027","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-028","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-029","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-030","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-031","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-032","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-033","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-034","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-035","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-040","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-041","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-050","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-001","to":"br-051","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-071","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-072","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-073","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-074","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-075","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-076","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-077","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-078","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-079","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-080","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-081","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-082","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-083","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-084","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-085","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-086","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-002","to":"br-087","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-011","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-012","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-013","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-014","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-015","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-016","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-017","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-018","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-019","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-003","to":"br-020","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-060","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-061","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-062","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-063","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-064","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-065","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-066","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-067","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-068","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-069","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-004","to":"br-070","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-090","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-091","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-092","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-093","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-094","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-095","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-096","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-097","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-005","to":"br-098","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-006","to":"br-100","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-006","to":"br-131","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-101","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-102","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-103","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-104","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-105","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-106","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-107","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-108","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-109","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-110","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-111","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-112","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-113","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-114","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-007","to":"br-115","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-120","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-121","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-122","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-123","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-124","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-125","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-126","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-127","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-128","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-129","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-008","to":"br-130","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-027","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-028","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-029","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-030","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-032","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-009","to":"br-041","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-010","to":"br-033","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-010","to":"br-034","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-010","to":"br-035","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-010","to":"br-083","type":"epic_contains","reason":"Epic contains bead"}
+{"from":"br-010","to":"br-084","type":"epic_contains","reason":"Epic contains bead"}

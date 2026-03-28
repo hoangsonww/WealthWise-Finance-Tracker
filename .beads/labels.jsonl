@@ -1,0 +1,12 @@
+{"name":"backend","color":"#3B82F6","description":"API, services, models, middleware in apps/api/"}
+{"name":"frontend","color":"#8B5CF6","description":"Next.js pages, components, hooks in apps/web/"}
+{"name":"schema","color":"#EC4899","description":"Zod schemas and types in packages/shared-types/"}
+{"name":"mcp","color":"#F59E0B","description":"MCP server tools, resources, transport in mcp/"}
+{"name":"ai","color":"#10B981","description":"Agentic AI agents, prompts, orchestration in agentic-ai/"}
+{"name":"context","color":"#06B6D4","description":"Knowledge graph, context engine in context-engineering/"}
+{"name":"infra","color":"#6366F1","description":"CI/CD, Docker, Kubernetes, Terraform, monitoring"}
+{"name":"testing","color":"#EF4444","description":"Unit tests, E2E tests, integration tests, benchmarks"}
+{"name":"data","color":"#F97316","description":"Data import/export, analytics, ML categorization"}
+{"name":"ux","color":"#14B8A6","description":"User experience, onboarding, accessibility, i18n"}
+{"name":"epic","color":"#7C3AED","description":"Epic-level organizational beads"}
+{"name":"security","color":"#DC2626","description":"Security hardening, auth improvements, audit"}
