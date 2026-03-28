@@ -43,5 +43,6 @@ npm-debug.log*
 # .codex/config.toml and .agents/ are committed (shared project config)
 .codex/config.local.toml
 
+# Vercel — local-only overrides (personal environment variables, local development settings)
 .vercel
 vercel.json

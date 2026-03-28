@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "project_key": "wealthwise",
+  "project_name": "WealthWise Finance Tracker",
+  "created": "2026-03-28T14:30:00Z",
+  "default_priority": 2,
+  "default_type": "task",
+  "branch_policy": "master",
+  "bead_prefix": "br",
+  "counter": 131,
+  "labels": [
+    "backend",
+    "frontend",
+    "schema",
+    "mcp",
+    "ai",
+    "context",
+    "infra",
+    "testing",
+    "data",
+    "ux",
+    "epic",
+    "security"
+  ],
+  "priority_map": {
+    "0": "critical",
+    "1": "high",
+    "2": "medium",
+    "3": "low",
+    "4": "backlog"
+  },
+  "type_map": ["task", "bug", "feature", "epic", "question", "docs"],
+  "agents_md": "AGENTS.md",
+  "plan_file": "PLAN.md"
+}
