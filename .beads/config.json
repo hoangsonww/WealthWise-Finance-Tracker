@@ -8,7 +8,20 @@
   "branch_policy": "master",
   "bead_prefix": "br",
   "counter": 131,
-  "labels": ["backend", "frontend", "schema", "mcp", "ai", "context", "infra", "testing", "data", "ux", "epic", "security"],
+  "labels": [
+    "backend",
+    "frontend",
+    "schema",
+    "mcp",
+    "ai",
+    "context",
+    "infra",
+    "testing",
+    "data",
+    "ux",
+    "epic",
+    "security"
+  ],
   "priority_map": {
     "0": "critical",
     "1": "high",
