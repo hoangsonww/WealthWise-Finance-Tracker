@@ -91,6 +91,11 @@
   - [Schema Coverage](#schema-coverage)
 - [Testing Strategy](#testing-strategy)
   - [Test Execution Flow](#test-execution-flow)
+- [Agentic Coding Flywheel Architecture](#agentic-coding-flywheel-architecture)
+  - [Coordination Stack](#coordination-stack)
+  - [Bead Dependency Graph](#bead-dependency-graph)
+  - [Agent Session Lifecycle](#agent-session-lifecycle)
+  - [File Reservation Protocol](#file-reservation-protocol)
 
 ---
 
@@ -1177,3 +1182,206 @@ graph LR
 ```
 
 API tests run against a real MongoDB instance (in-memory) with full Mongoose operations - no mocking the database layer. Each test file gets a clean database via `afterEach` collection clearing.
+
+---
+
+## Agentic Coding Flywheel Architecture
+
+WealthWise uses the [Agentic Coding Flywheel](https://agent-flywheel.com/) to coordinate multi-agent development. The architecture externalizes all task state, coordination, and routing into durable, inspectable artifacts rather than relying on any single agent's memory.
+
+### Coordination Stack
+
+The Flywheel rests on three interlocking systems that form a single coordination machine:
+
+```mermaid
+graph TB
+    subgraph Flywheel["Agentic Coding Flywheel"]
+        direction TB
+
+        subgraph TaskLayer["Task Structure"]
+            BR["Beads (br)<br/>131 beads, 152 deps<br/>.beads/issues.jsonl"]
+            BV["Beads Viewer (bv)<br/>PageRank, betweenness,<br/>critical-path routing"]
+        end
+
+        subgraph CoordLayer["Coordination Layer"]
+            AM["Agent Mail<br/>Point-to-point messaging"]
+            FR["File Reservations<br/>Advisory locks, TTL expiry"]
+            TH["Threads<br/>Bead-anchored conversations"]
+        end
+
+        subgraph AgentLayer["Agent Swarm"]
+            A1["Agent 1<br/>(Claude Opus)"]
+            A2["Agent 2<br/>(Claude Opus)"]
+            A3["Agent 3<br/>(GPT-4.1 / Codex)"]
+            A4["Agent 4<br/>(Gemini 2.5 Pro)"]
+        end
+    end
+
+    AGENTS_MD["AGENTS.md<br/>Operating Manual"]
+
+    A1 --> BR
+    A2 --> BR
+    A3 --> BR
+    A4 --> BR
+    A1 --> AM
+    A2 --> AM
+    A3 --> AM
+    A4 --> AM
+    BR --> BV
+    AM --> FR
+    AM --> TH
+    AGENTS_MD --> A1
+    AGENTS_MD --> A2
+    AGENTS_MD --> A3
+    AGENTS_MD --> A4
+
+    style BR fill:#3B82F6,stroke:#000,color:#fff
+    style BV fill:#6366F1,stroke:#000,color:#fff
+    style AM fill:#10B981,stroke:#000,color:#fff
+    style FR fill:#F59E0B,stroke:#000,color:#000
+    style TH fill:#06B6D4,stroke:#000,color:#000
+    style AGENTS_MD fill:#7C3AED,stroke:#000,color:#fff
+    style A1 fill:#cc785c,stroke:#000,color:#fff
+    style A2 fill:#cc785c,stroke:#000,color:#fff
+    style A3 fill:#4f46e5,stroke:#000,color:#fff
+    style A4 fill:#4285f4,stroke:#000,color:#fff
+```
+
+| Tool | Role | Failure without it |
+|------|------|--------------------|
+| **Beads (`br`)** | Durable, localized task state with dependencies | Work stays vague, hidden in chat, hard to coordinate |
+| **Beads Viewer (`bv`)** | Graph-theory compass for task prioritization | Agents pick tasks by convenience instead of leverage |
+| **Agent Mail (`am`)** | High-bandwidth negotiation layer | Agents overlap, duplicate work, lose situational awareness |
+
+### Bead Dependency Graph
+
+Beads form a directed acyclic graph where edges represent "blocks" relationships. The graph enables `bv` to compute which bead unlocks the most downstream work.
+
+```mermaid
+graph LR
+    subgraph Epics
+        E1["br-001<br/>EPIC: API Advanced"]
+        E2["br-002<br/>EPIC: Frontend"]
+        E3["br-003<br/>EPIC: Schema"]
+    end
+
+    subgraph Foundation
+        S1["br-011<br/>Pagination Schema"]
+        S2["br-012<br/>Analytics Schema"]
+    end
+
+    subgraph Implementation
+        I1["br-021<br/>Analytics Endpoints"]
+        I2["br-022<br/>Paginated List"]
+        I3["br-071<br/>Dashboard Redesign"]
+    end
+
+    E1 --> S1
+    E1 --> S2
+    E3 --> S1
+    S1 --> I1
+    S1 --> I2
+    S1 --> I3
+    S2 --> I1
+    E2 --> I3
+
+    style E1 fill:#7C3AED,stroke:#000,color:#fff
+    style E2 fill:#7C3AED,stroke:#000,color:#fff
+    style E3 fill:#7C3AED,stroke:#000,color:#fff
+    style S1 fill:#EC4899,stroke:#000,color:#fff
+    style S2 fill:#EC4899,stroke:#000,color:#fff
+    style I1 fill:#3B82F6,stroke:#000,color:#fff
+    style I2 fill:#3B82F6,stroke:#000,color:#fff
+    style I3 fill:#8B5CF6,stroke:#000,color:#fff
+```
+
+**12 label domains** classify beads across the full stack: backend, frontend, schema, mcp, ai, context, infra, testing, data, ux, epic, security.
+
+### Agent Session Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant H as Human
+    participant A as Agent
+    participant AM as Agent Mail
+    participant BR as Beads (br)
+    participant BV as Beads Viewer (bv)
+    participant GIT as Git
+
+    H->>A: Launch with marching orders
+    A->>A: Read AGENTS.md
+    A->>A: Explore codebase
+    A->>AM: Register (auto)
+    A->>AM: Check inbox
+    A->>BV: bv --robot-triage
+    BV-->>A: Highest-leverage bead
+    A->>BR: br update br-XXX --status in_progress
+    A->>AM: [br-XXX] Start: <title>
+    A->>AM: Reserve files (TTL=3600s)
+    A->>A: Implement bead
+    A->>A: Self-review (fresh eyes)
+    A->>A: Run tests
+    A->>BR: br close br-XXX --reason "..."
+    A->>AM: Release reservations
+    A->>AM: [br-XXX] Completed
+    A->>GIT: git commit -m "[br-XXX] ..."
+    A->>GIT: git push
+    A->>BV: bv --robot-next
+    Note over A,BV: Cycle repeats until graph is done
+```
+
+### File Reservation Protocol
+
+File reservations prevent editing collisions without rigid locking:
+
+```mermaid
+graph LR
+    subgraph Agent_A["Agent: ScarletCave"]
+        CLAIM_A["Claims br-011"]
+        RESERVE_A["Reserves:<br/>shared-types/schemas/*"]
+        WORK_A["Implements schema"]
+        RELEASE_A["Releases reservation"]
+    end
+
+    subgraph Agent_B["Agent: BlueLake"]
+        CHECK_B["Checks reservations"]
+        WAIT_B["Picks different bead"]
+        CLAIM_B["Claims br-071<br/>(no file overlap)"]
+    end
+
+    CLAIM_A --> RESERVE_A
+    RESERVE_A --> WORK_A
+    WORK_A --> RELEASE_A
+    RESERVE_A -.->|"Advisory signal"| CHECK_B
+    CHECK_B --> WAIT_B
+    WAIT_B --> CLAIM_B
+
+    style RESERVE_A fill:#F59E0B,stroke:#000,color:#000
+    style CHECK_B fill:#F59E0B,stroke:#000,color:#000
+```
+
+**Design principles:**
+- **Advisory, not enforced**: Dead agents cannot deadlock the system
+- **TTL-based expiry**: Reservations auto-expire after 1 hour
+- **Glob patterns**: Reserve `apps/web/src/components/dashboard/*` instead of listing every file
+- **Pre-commit guard**: A hook blocks commits to files reserved by another agent as a safety net
+
+### Infrastructure Files
+
+| File | Purpose |
+|------|---------|
+| `.beads/config.json` | Bead repository configuration (labels, priorities, project key) |
+| `.beads/issues.jsonl` | All 131 beads (one JSON object per line) |
+| `.beads/deps.jsonl` | 152 dependency edges between beads |
+| `.beads/comments.jsonl` | Threaded comments on beads |
+| `.beads/labels.jsonl` | 12 label definitions with colors |
+| `.agent-sessions/config.json` | Coordination settings (Agent Mail, reservations, git policy) |
+| `.agent-sessions/registry.json` | Registered agents and capabilities |
+| `.agent-sessions/mail/messages.jsonl` | Point-to-point agent messages |
+| `.agent-sessions/mail/threads.jsonl` | Bead-anchored conversation threads |
+| `.agent-sessions/mail/reservations.jsonl` | Advisory file reservations |
+| `.agent-sessions/metrics/summary.json` | Aggregated coordination metrics |
+| `.agent-sessions/sessions/*.jsonl` | Per-agent event logs |
+| `AGENTS.md` | Operating manual (497 lines, 20 KB) |
+| `.claude/skills/bead-workflow.md` | Claude Code bead lifecycle skill |
+| `.agents/skills/bead-workflow/SKILL.md` | Codex bead lifecycle skill |

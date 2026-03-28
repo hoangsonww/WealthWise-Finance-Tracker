@@ -29,6 +29,7 @@ It complements:
 - [13. Observability and diagnostics](#13-observability-and-diagnostics)
 - [14. Testing matrix](#14-testing-matrix)
 - [15. Command reference](#15-command-reference)
+- [16. Agentic Coding Flywheel infrastructure](#16-agentic-coding-flywheel-infrastructure)
 
 ---
 
@@ -470,4 +471,186 @@ npm run build
 - Agentic AI: `http://localhost:5200`
 - Context Engineering API: `http://localhost:5300`
 - Context Engineering UI: `http://localhost:5300/ui`
+
+---
+
+## 16. Agentic Coding Flywheel infrastructure
+
+WealthWise uses the [Agentic Coding Flywheel](https://agent-flywheel.com/) for multi-agent development coordination. This section covers the technical infrastructure that enables concurrent AI agent workflows.
+
+### Storage format
+
+All Flywheel data uses **JSONL** (JSON Lines) for git-friendly diffs and append-only writes:
+
+| File | Format | Records | Purpose |
+|------|--------|---------|---------|
+| `.beads/issues.jsonl` | JSONL | 131 | Bead definitions (title, body, priority, type, labels, status) |
+| `.beads/deps.jsonl` | JSONL | 152 | Dependency edges (`from_id` blocks `to_id`) |
+| `.beads/comments.jsonl` | JSONL | 23 | Threaded comments on beads |
+| `.beads/labels.jsonl` | JSONL | 12 | Label definitions (name, color, description) |
+| `.beads/config.json` | JSON | 1 | Repository-level bead configuration |
+| `.agent-sessions/mail/messages.jsonl` | JSONL | 10 | Inter-agent messages |
+| `.agent-sessions/mail/threads.jsonl` | JSONL | 4 | Bead-anchored conversation threads |
+| `.agent-sessions/mail/reservations.jsonl` | JSONL | 3 | Advisory file reservations |
+| `.agent-sessions/sessions/*.jsonl` | JSONL | 33 events | Per-agent session event logs |
+| `.agent-sessions/registry.json` | JSON | 4 agents | Agent registry with capabilities |
+| `.agent-sessions/metrics/summary.json` | JSON | 1 | Aggregated coordination metrics |
+
+### Bead schema
+
+Each bead in `issues.jsonl` follows this structure:
+
+```jsonc
+{
+  "id": "br-021",
+  "title": "Analytics endpoint implementation",
+  "body": "Context: ...\nWhat to Do: ...\nAcceptance Criteria: ...\nFiles to Modify: ...",
+  "status": "open",           // open | in_progress | closed
+  "priority": 1,              // 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+  "type": "task",             // task | bug | feature | epic | question | docs
+  "labels": ["backend"],
+  "created": "2026-03-28T14:30:00Z",
+  "closed_reason": null
+}
+```
+
+### Dependency schema
+
+Each edge in `deps.jsonl`:
+
+```jsonc
+{
+  "from_id": "br-011",        // This bead blocks...
+  "to_id": "br-021",          // ...this bead
+  "reason": "Analytics endpoints need pagination schemas"
+}
+```
+
+### Agent registry schema
+
+Each agent in `registry.json`:
+
+```jsonc
+{
+  "name": "ScarletCave",
+  "model": "claude-opus-4-6",
+  "status": "active",          // active | idle | offline
+  "session_id": "session-001",
+  "capabilities": ["backend", "frontend", "schema", "mcp", "ai", "context", "infra", "testing"],
+  "beads_completed": 0,
+  "current_bead": null
+}
+```
+
+### File reservation schema
+
+Each reservation in `reservations.jsonl`:
+
+```jsonc
+{
+  "reservation_id": "res-001",
+  "agent_name": "ScarletCave",
+  "paths": ["packages/shared-types/src/schemas/pagination.schema.ts"],
+  "ttl_seconds": 3600,
+  "exclusive": true,
+  "reason": "br-011: pagination schemas",
+  "status": "active",          // active | released
+  "created": "2026-03-28T14:31:35Z"
+}
+```
+
+### Coordination topology
+
+```mermaid
+graph TB
+    subgraph CLITools["CLI Tools"]
+        BR["br (beads CLI)<br/>Task CRUD + deps"]
+        BV["bv (beads viewer)<br/>Graph-theory routing"]
+        AM["am (agent mail)<br/>Messaging + reservations"]
+    end
+
+    subgraph Storage["JSONL Storage (.beads/ + .agent-sessions/)"]
+        ISSUES["issues.jsonl"]
+        DEPS["deps.jsonl"]
+        MSGS["messages.jsonl"]
+        RES["reservations.jsonl"]
+    end
+
+    subgraph Agents["Agent Swarm (up to 12)"]
+        A1["Claude Opus"]
+        A2["GPT-4.1 / Codex"]
+        A3["Gemini 2.5 Pro"]
+    end
+
+    AGENTSMD["AGENTS.md<br/>(operating manual)"]
+    GIT["Git (single branch: master)"]
+
+    A1 --> BR
+    A1 --> BV
+    A1 --> AM
+    A2 --> BR
+    A2 --> BV
+    A2 --> AM
+    A3 --> BR
+    A3 --> BV
+    A3 --> AM
+
+    BR --> ISSUES
+    BR --> DEPS
+    BV --> ISSUES
+    BV --> DEPS
+    AM --> MSGS
+    AM --> RES
+
+    AGENTSMD --> A1
+    AGENTSMD --> A2
+    AGENTSMD --> A3
+
+    A1 --> GIT
+    A2 --> GIT
+    A3 --> GIT
+
+    style BR fill:#3B82F6,stroke:#000,color:#fff
+    style BV fill:#6366F1,stroke:#000,color:#fff
+    style AM fill:#10B981,stroke:#000,color:#fff
+```
+
+### Bead CLI commands
+
+```bash
+br create --title "..." --priority 2 --label backend    # Create bead
+br list --status open --json                             # List by status
+br ready --json                                          # Unblocked beads only
+br show br-021                                           # View details
+br update br-021 --status in_progress                    # Claim
+br close br-021 --reason "..."                           # Complete
+br dep add br-021 br-011                                 # Add dependency
+br comments add br-021 "..."                             # Add comment
+br sync --flush-only                                     # Export to JSONL
+```
+
+### Beads Viewer commands
+
+```bash
+bv --robot-triage         # Full recommendations with graph metrics
+bv --robot-next           # Single top pick + claim command
+bv --robot-plan           # Parallel execution tracks
+bv --robot-insights       # PageRank, betweenness, HITS scores
+bv --robot-priority       # Priority recommendations with confidence
+```
+
+### Metrics tracked
+
+| Category | Metrics |
+|----------|---------|
+| **Agents** | total registered, active, idle |
+| **Beads** | total, open, in_progress, closed, completion rate |
+| **Sessions** | total, active, total events |
+| **Coordination** | messages, threads, reservations, conflicts detected |
+| **Git** | commits, files modified, lines added/removed |
+| **Quality** | self-reviews, cross-reviews, bugs found/fixed |
+
+### Integration with existing packages
+
+The Flywheel infrastructure is orthogonal to the 6 WealthWise packages. Beads reference package code via labels and file paths, but no package has a build dependency on the Flywheel. The `.beads/` and `.agent-sessions/` directories are excluded from production builds and Docker images via `.dockerignore` and `.gitignore` rules for ephemeral session data.
 
