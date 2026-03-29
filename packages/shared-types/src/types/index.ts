@@ -61,6 +61,15 @@ import {
   advisorChatResponseSchema,
 } from "../schemas/advisor.schema";
 
+import {
+  createHoldingSchema,
+  updateHoldingSchema,
+  refreshPricesSchema,
+  holdingResponseSchema,
+  holdingAllocationSchema,
+  portfolioSummarySchema,
+} from "../schemas/holding.schema";
+
 // ---------------------------------------------------------------------------
 // User types
 // ---------------------------------------------------------------------------
@@ -129,6 +138,16 @@ export type AdvisorChatRequest = z.infer<typeof advisorChatRequestSchema>;
 export type AdvisorChatModelOutput = z.infer<typeof advisorChatModelOutputSchema>;
 export type AdvisorContextStats = z.infer<typeof advisorContextStatsSchema>;
 export type AdvisorChatResponse = z.infer<typeof advisorChatResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Holding / Portfolio types
+// ---------------------------------------------------------------------------
+export type CreateHoldingInput = z.infer<typeof createHoldingSchema>;
+export type UpdateHoldingInput = z.infer<typeof updateHoldingSchema>;
+export type RefreshPricesInput = z.infer<typeof refreshPricesSchema>;
+export type HoldingResponse = z.infer<typeof holdingResponseSchema>;
+export type HoldingAllocation = z.infer<typeof holdingAllocationSchema>;
+export type PortfolioSummary = z.infer<typeof portfolioSummarySchema>;
 
 // ---------------------------------------------------------------------------
 // Generic API response wrappers
