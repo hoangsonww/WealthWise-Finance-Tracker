@@ -29,7 +29,8 @@
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
 [![Kustomize](https://img.shields.io/badge/Kustomize-326CE5?logo=kubernetes&logoColor=white)](https://kustomize.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
-[![AWS](https://img.shields.io/badge/AWS-232F3E?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+[![Coralogix](https://img.shields.io/badge/Coralogix-DB2828?logo=datadog&logoColor=white)](https://coralogix.com/)
+[![AWS](https://img.shields.io/badge/Amazon_Web_Services-232F3E?logo=task&logoColor=white)](https://aws.amazon.com/)
 [![ECS Fargate](https://img.shields.io/badge/ECS_Fargate-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/fargate/)
 [![CloudFormation](https://img.shields.io/badge/CloudFormation-FF4F8B?logo=amazonaws&logoColor=white)](https://aws.amazon.com/cloudformation/)
 [![DocumentDB](https://img.shields.io/badge/DocumentDB-C925D1?logo=amazonaws&logoColor=white)](https://aws.amazon.com/documentdb/)
@@ -51,7 +52,7 @@
 [![Anthropic Claude](https://img.shields.io/badge/Claude-Anthropic-cc785c?logo=anthropic&logoColor=white)](https://anthropic.com/)
 [![Google Gemini](https://img.shields.io/badge/Gemini-Google-4285f4?logo=google&logoColor=white)](https://ai.google.dev/gemini)
 [![Pino](https://img.shields.io/badge/Pino-9-687634)](https://getpino.io/)
-[![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=black)](https://esbuild.github.io/)
+[![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=white)](https://esbuild.github.io/)
 
 ---
 
