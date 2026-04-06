@@ -9,3 +9,16 @@ ingress:
 web:
   nextauthUrl: "https://staging.wealthwise.example.com"
   nextPublicApiUrl: "https://staging.wealthwise.example.com/api/v1"
+
+coralogix:
+  enabled: true
+  domain: "coralogix.us"
+  applicationName: "wealthwise-staging"
+  otelCollector:
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "250m"

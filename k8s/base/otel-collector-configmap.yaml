@@ -1,0 +1,217 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wealthwise-otel-collector-config
+  namespace: wealthwise
+  labels:
+    app.kubernetes.io/name: wealthwise-otel-collector
+    app.kubernetes.io/component: observability
+data:
+  otel-collector-config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      filelog:
+        include:
+          - /var/log/pods/wealthwise_*/*/*.log
+        exclude:
+          - /var/log/pods/wealthwise_wealthwise-otel-collector*/*/*.log
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        operators:
+          - type: router
+            id: log_format_router
+            routes:
+              - output: json_parser
+                expr: 'body matches "^\\{"'
+              - output: containerd_parser
+                expr: 'body matches "^\\d{4}-"'
+          - type: json_parser
+            id: json_parser
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+          - type: regex_parser
+            id: containerd_parser
+            regex: '^(?P<time>[^ ]+) (?P<stream>stdout|stderr) (?P<flags>[^ ]*) (?P<log>.*)$'
+            timestamp:
+              parse_from: attributes.time
+              layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+          - type: regex_parser
+            id: extract_metadata_from_filepath
+            regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
+            parse_from: attributes["log.file.path"]
+          - type: move
+            from: attributes.log
+            to: body
+          - type: move
+            from: attributes.namespace
+            to: resource["k8s.namespace.name"]
+          - type: move
+            from: attributes.pod_name
+            to: resource["k8s.pod.name"]
+          - type: move
+            from: attributes.container_name
+            to: resource["k8s.container.name"]
+          - type: move
+            from: attributes.uid
+            to: resource["k8s.pod.uid"]
+
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: wealthwise-pods
+              scrape_interval: 30s
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names:
+                      - wealthwise
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  action: keep
+                  regex: "true"
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  action: replace
+                  target_label: __metrics_path__
+                  regex: (.+)
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_ip]
+                  action: replace
+                  target_label: __address__
+                  regex: (\d+);([\d\.]+)
+                  replacement: $${2}:$${1}
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: replace
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                  action: replace
+                  target_label: app
+
+      kubeletstats:
+        collection_interval: 30s
+        auth_type: serviceAccount
+        endpoint: https://${env:K8S_NODE_NAME}:10250
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+
+    processors:
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+
+      memory_limiter:
+        limit_percentage: 80
+        spike_limit_percentage: 25
+        check_interval: 1s
+
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.node.name
+            - k8s.container.name
+          labels:
+            - tag_name: app.kubernetes.io/name
+              key: app.kubernetes.io/name
+              from: pod
+            - tag_name: app.kubernetes.io/component
+              key: app.kubernetes.io/component
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.name
+              - from: resource_attribute
+                name: k8s.namespace.name
+
+      resource:
+        attributes:
+          - key: cx.application.name
+            value: wealthwise
+            action: upsert
+          - key: cx.subsystem.name
+            from_attribute: app.kubernetes.io/name
+            action: upsert
+
+      transform/logs:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(severity_text, "INFO") where severity_text == ""
+              - set(severity_number, 9) where severity_number == 0
+              - set(body, attributes["log"]) where body == "" and attributes["log"] != nil
+
+    exporters:
+      coralogix:
+        domain: "${CX_DOMAIN}"
+        private_key: "${CX_API_KEY}"
+        application_name: "wealthwise"
+        subsystem_name: "kubernetes"
+        timeout: 30s
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        logs:
+          receivers:
+            - filelog
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - transform/logs
+            - batch
+          exporters:
+            - coralogix
+        metrics:
+          receivers:
+            - prometheus
+            - kubeletstats
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - coralogix
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - coralogix
+      telemetry:
+        logs:
+          level: info
+        metrics:
+          address: 0.0.0.0:8888

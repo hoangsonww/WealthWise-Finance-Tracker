@@ -20,3 +20,17 @@ web:
     limits:
       memory: "1Gi"
       cpu: "1000m"
+
+coralogix:
+  enabled: true
+  domain: "coralogix.us"
+  applicationName: "wealthwise"
+  otelCollector:
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    scrapeInterval: "15s"

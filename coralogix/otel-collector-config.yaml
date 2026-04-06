@@ -1,0 +1,80 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 30s
+    timeout: 10s
+    api_version: 1.24
+    container_labels_to_metric_labels:
+      com.docker.compose.service: service_name
+    provide_per_core_cpu_metrics: false
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+
+  resource:
+    attributes:
+      - key: cx.application.name
+        value: "wealthwise"
+        action: upsert
+      - key: environment
+        value: "production"
+        action: upsert
+
+  resource/subsystem:
+    attributes:
+      - key: cx.subsystem.name
+        from_attribute: service_name
+        action: upsert
+
+exporters:
+  coralogix:
+    domain: "${CX_DOMAIN}"
+    private_key: "${CX_API_KEY}"
+    application_name: "wealthwise"
+    subsystem_name: "docker"
+    timeout: 30s
+
+extensions:
+  health_check:
+    endpoint: "0.0.0.0:13133"
+
+service:
+  extensions:
+    - health_check
+  pipelines:
+    metrics:
+      receivers:
+        - docker_stats
+      processors:
+        - memory_limiter
+        - resource
+        - resource/subsystem
+        - batch
+      exporters:
+        - coralogix
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - resource
+        - batch
+      exporters:
+        - coralogix
+  telemetry:
+    logs:
+      level: warn

@@ -24,6 +24,13 @@ resources:
   - agentic-ai-pdb.yaml
   - ingress.yaml
   - network-policy.yaml
+  - coralogix-secret.yaml
+  - otel-collector-configmap.yaml
+  - otel-collector-rbac.yaml
+  - otel-collector-daemonset.yaml
+  - otel-collector-service.yaml
+  - networkpolicy-otel-egress.yaml
+  - networkpolicy-otel-ingress.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: wealthwise

@@ -29,7 +29,8 @@
 [![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
 [![Kustomize](https://img.shields.io/badge/Kustomize-326CE5?logo=kubernetes&logoColor=white)](https://kustomize.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
-[![AWS](https://img.shields.io/badge/AWS-232F3E?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+[![Coralogix](https://img.shields.io/badge/Coralogix-DB2828?logo=datadog&logoColor=white)](https://coralogix.com/)
+[![AWS](https://img.shields.io/badge/Amazon_Web_Services-232F3E?logo=task&logoColor=white)](https://aws.amazon.com/)
 [![ECS Fargate](https://img.shields.io/badge/ECS_Fargate-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/fargate/)
 [![CloudFormation](https://img.shields.io/badge/CloudFormation-FF4F8B?logo=amazonaws&logoColor=white)](https://aws.amazon.com/cloudformation/)
 [![DocumentDB](https://img.shields.io/badge/DocumentDB-C925D1?logo=amazonaws&logoColor=white)](https://aws.amazon.com/documentdb/)
@@ -51,7 +52,7 @@
 [![Anthropic Claude](https://img.shields.io/badge/Claude-Anthropic-cc785c?logo=anthropic&logoColor=white)](https://anthropic.com/)
 [![Google Gemini](https://img.shields.io/badge/Gemini-Google-4285f4?logo=google&logoColor=white)](https://ai.google.dev/gemini)
 [![Pino](https://img.shields.io/badge/Pino-9-687634)](https://getpino.io/)
-[![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=black)](https://esbuild.github.io/)
+[![esbuild](https://img.shields.io/badge/esbuild-0.27-ffcf00?logo=esbuild&logoColor=white)](https://esbuild.github.io/)
 
 ---
 
@@ -87,6 +88,10 @@
   - [Production (Docker/Podman Compose)](#production-dockerpodman-compose)
   - [Nginx Routing](#nginx-routing)
   - [Development vs Production](#development-vs-production)
+- [Observability Architecture](#observability-architecture)
+  - [Coralogix Pipeline (Kubernetes)](#coralogix-pipeline-kubernetes)
+  - [Coralogix Pipeline (Docker Compose)](#coralogix-pipeline-docker-compose)
+  - [Terraform-Managed Coralogix Resources](#terraform-managed-coralogix-resources)
 - [Shared Types Contract](#shared-types-contract)
   - [Schema Coverage](#schema-coverage)
 - [Testing Strategy](#testing-strategy)
@@ -1015,6 +1020,14 @@ graph TD
     MCP --> DB
     AI -- "MCP protocol" --> MCP
 
+    API -. "fluentd driver" .-> FB["Fluent Bit<br/><i>log shipper</i>"]
+    WEB -. "fluentd driver" .-> FB
+    MCP -. "fluentd driver" .-> FB
+    AI -. "fluentd driver" .-> FB
+    NGINX -. "fluentd driver" .-> FB
+    FB -- "HTTP/TLS" --> CX["Coralogix"]
+    OTEL["OTEL Collector<br/><i>metrics + traces</i>"] -- "OTEL export" --> CX
+
     subgraph NETWORK["wealthwise-network (bridge)"]
         NGINX
         API
@@ -1022,6 +1035,8 @@ graph TD
         MCP
         AI
         DB
+        FB
+        OTEL
     end
 
     style CLIENT fill:#6366f1,stroke:#000,color:#fff
@@ -1031,6 +1046,9 @@ graph TD
     style MCP fill:#4f46e5,stroke:#000,color:#fff
     style AI fill:#cc785c,stroke:#000,color:#fff
     style DB fill:#47a248,stroke:#000,color:#fff
+    style FB fill:#e11d48,stroke:#000,color:#fff
+    style OTEL fill:#e11d48,stroke:#000,color:#fff
+    style CX fill:#e11d48,stroke:#000,color:#fff
     style NETWORK fill:#1e293b,stroke:#475569,color:#94a3b8
 ```
 
@@ -1070,6 +1088,105 @@ graph LR
     style Dev fill:#1e293b,stroke:#f59e0b,color:#e2e8f0
     style Prod fill:#1e293b,stroke:#10b981,color:#e2e8f0
 ```
+
+---
+
+## Observability Architecture
+
+### Coralogix Pipeline (Kubernetes)
+
+```mermaid
+graph TD
+    subgraph PODS["Application Pods"]
+        API_P["API Pod"]
+        WEB_P["Web Pod"]
+        MCP_P["MCP Pod"]
+        AI_P["Agentic AI Pod"]
+    end
+
+    subgraph OTEL["OTEL Collector DaemonSet"]
+        FL["filelog receiver<br/><i>pod log scraping</i>"]
+        PR["prometheus receiver<br/><i>metrics scraping</i>"]
+        KS["kubeletstats receiver<br/><i>node/pod/container</i>"]
+        OTLP_R["otlp receiver<br/><i>gRPC :4317 / HTTP :4318</i>"]
+        PROC["Processors<br/><i>memory_limiter → k8sattributes<br/>→ resource → batch</i>"]
+        EXP["Coralogix Exporter<br/><i>OTEL-native ingress</i>"]
+    end
+
+    CX_LOGS["Coralogix Logs"]
+    CX_METRICS["Coralogix Metrics"]
+    CX_TRACES["Coralogix Traces"]
+    DASH["Dashboards &amp; Alerts<br/><i>Terraform-managed</i>"]
+
+    API_P -. "stdout/stderr" .-> FL
+    WEB_P -. "stdout/stderr" .-> FL
+    MCP_P -. "stdout/stderr" .-> FL
+    AI_P -. "stdout/stderr" .-> FL
+    API_P -. "OTLP traces" .-> OTLP_R
+
+    FL --> PROC
+    PR --> PROC
+    KS --> PROC
+    OTLP_R --> PROC
+
+    PROC --> EXP
+    EXP -- "logs" --> CX_LOGS
+    EXP -- "metrics" --> CX_METRICS
+    EXP -- "traces" --> CX_TRACES
+
+    CX_LOGS --> DASH
+    CX_METRICS --> DASH
+    CX_TRACES --> DASH
+
+    style API_P fill:#10b981,color:#fff
+    style WEB_P fill:#0f172a,stroke:#6366f1,color:#e2e8f0
+    style MCP_P fill:#4f46e5,color:#fff
+    style AI_P fill:#cc785c,color:#fff
+    style EXP fill:#e11d48,color:#fff
+    style CX_LOGS fill:#e11d48,color:#fff
+    style CX_METRICS fill:#e11d48,color:#fff
+    style CX_TRACES fill:#e11d48,color:#fff
+    style DASH fill:#f59e0b,color:#000
+```
+
+### Coralogix Pipeline (Docker Compose)
+
+```mermaid
+graph LR
+    subgraph CONTAINERS["App Containers"]
+        C_API["api"]
+        C_WEB["web"]
+        C_MCP["mcp"]
+        C_AI["agentic-ai"]
+        C_NGINX["nginx"]
+    end
+
+    FB["Fluent Bit<br/><i>fluentd driver :24224</i>"]
+    OTELC["OTEL Collector<br/><i>docker_stats + otlp</i>"]
+    CX["Coralogix"]
+
+    C_API -- "fluentd" --> FB
+    C_WEB -- "fluentd" --> FB
+    C_MCP -- "fluentd" --> FB
+    C_AI -- "fluentd" --> FB
+    C_NGINX -- "fluentd" --> FB
+
+    FB -- "HTTP/TLS (logs)" --> CX
+    OTELC -- "OTEL (metrics + traces)" --> CX
+
+    style FB fill:#e11d48,color:#fff
+    style OTELC fill:#e11d48,color:#fff
+    style CX fill:#e11d48,color:#fff
+```
+
+### Terraform-Managed Coralogix Resources
+
+| Resource Type | Count | Purpose |
+|--------------|-------|---------|
+| Alert rules | 7 | 5xx spikes, error rate, service down, slow API, MongoDB failures, auth brute force, memory pressure |
+| TCO policies | 3 | Log tiering (high/medium/low priority) for cost optimization |
+| Parsing rules | 4 | JSON auto-parse, severity/timestamp/subsystem extraction |
+| Dashboard | 1 | 5 sections, 11 widgets (health, latency, log volume, MongoDB, auth) |
 
 ---
 

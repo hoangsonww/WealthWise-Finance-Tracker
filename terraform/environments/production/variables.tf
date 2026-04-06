@@ -20,3 +20,17 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+# ── Coralogix ────────────────────────────────────────────────────────────────
+
+variable "coralogix_api_key" {
+  description = "Coralogix Alerts, Rules & Tags API key for the observability module"
+  type        = string
+  sensitive   = true
+}
+
+variable "coralogix_domain" {
+  description = "Coralogix platform domain matching your account region (coralogix.com, coralogix.us, eu2.coralogix.com, coralogix.in, coralogix.sg)"
+  type        = string
+  default     = "coralogix.us"
+}

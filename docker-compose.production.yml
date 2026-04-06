@@ -48,6 +48,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      fluent-bit:
+        condition: service_healthy
     networks:
       - wealthwise-network
     restart: always
@@ -68,10 +70,13 @@ services:
           cpus: "0.25"
           memory: 128M
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "3"
+        fluentd-address: "localhost:24224"
+        fluentd-async: "true"
+        fluentd-retry-wait: "1s"
+        fluentd-max-retries: "30"
+        tag: "docker.{{.Name}}"
 
   web:
     build:
@@ -88,6 +93,8 @@ services:
       - API_URL=http://api:4000
     depends_on:
       api:
+        condition: service_healthy
+      fluent-bit:
         condition: service_healthy
     networks:
       - wealthwise-network
@@ -109,10 +116,13 @@ services:
           cpus: "0.25"
           memory: 128M
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "3"
+        fluentd-address: "localhost:24224"
+        fluentd-async: "true"
+        fluentd-retry-wait: "1s"
+        fluentd-max-retries: "30"
+        tag: "docker.{{.Name}}"
 
   mcp:
     build:
@@ -129,6 +139,8 @@ services:
       - MCP_PORT=5100
     depends_on:
       mongodb:
+        condition: service_healthy
+      fluent-bit:
         condition: service_healthy
     networks:
       - wealthwise-network
@@ -150,10 +162,13 @@ services:
           cpus: "0.25"
           memory: 128M
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "3"
+        fluentd-address: "localhost:24224"
+        fluentd-async: "true"
+        fluentd-retry-wait: "1s"
+        fluentd-max-retries: "30"
+        tag: "docker.{{.Name}}"
 
   agentic-ai:
     build:
@@ -170,6 +185,8 @@ services:
       - AGENT_PORT=5200
     depends_on:
       mcp:
+        condition: service_healthy
+      fluent-bit:
         condition: service_healthy
     networks:
       - wealthwise-network
@@ -191,10 +208,13 @@ services:
           cpus: "0.25"
           memory: 128M
     logging:
-      driver: json-file
+      driver: fluentd
       options:
-        max-size: "10m"
-        max-file: "3"
+        fluentd-address: "localhost:24224"
+        fluentd-async: "true"
+        fluentd-retry-wait: "1s"
+        fluentd-max-retries: "30"
+        tag: "docker.{{.Name}}"
 
   nginx:
     image: nginx:alpine
@@ -214,6 +234,8 @@ services:
         condition: service_healthy
       agentic-ai:
         condition: service_healthy
+      fluent-bit:
+        condition: service_healthy
     networks:
       - wealthwise-network
     restart: always
@@ -232,10 +254,84 @@ services:
           cpus: "0.1"
           memory: 64M
     logging:
+      driver: fluentd
+      options:
+        fluentd-address: "localhost:24224"
+        fluentd-async: "true"
+        fluentd-retry-wait: "1s"
+        fluentd-max-retries: "30"
+        tag: "docker.{{.Name}}"
+
+  # ── Coralogix: Log Shipper ──────────────────────────────────────────────────
+  fluent-bit:
+    image: fluent/fluent-bit:3.0
+    container_name: wealthwise-fluent-bit
+    volumes:
+      - ./coralogix/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./coralogix/parsers.conf:/fluent-bit/etc/parsers.conf:ro
+      - ./coralogix/subsystem.lua:/fluent-bit/etc/subsystem.lua:ro
+    environment:
+      - CX_API_KEY=${CX_API_KEY}
+      - CX_DOMAIN=${CX_DOMAIN:-coralogix.us}
+    networks:
+      - wealthwise-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2020/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    logging:
       driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: "5m"
+        max-file: "2"
+
+  # ── Coralogix: OpenTelemetry Collector (Metrics + Traces) ───────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: wealthwise-otel-collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./coralogix/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CX_API_KEY=${CX_API_KEY}
+      - CX_DOMAIN=${CX_DOMAIN:-coralogix.us}
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - wealthwise-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
 
 volumes:
   mongodb_data_prod:

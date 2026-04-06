@@ -43,3 +43,6 @@ ingress:
 
 networkPolicies:
   enabled: false
+
+coralogix:
+  enabled: false

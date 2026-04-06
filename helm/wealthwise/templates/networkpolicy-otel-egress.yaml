@@ -1,0 +1,35 @@
+{{- if and .Values.coralogix.enabled .Values.networkPolicies.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "wealthwise.fullname" . }}-allow-otel-egress
+  namespace: {{ include "wealthwise.namespace" . }}
+  labels:
+    {{- include "wealthwise.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: observability
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "wealthwise.fullname" . }}-otel-collector
+      app.kubernetes.io/component: observability
+  policyTypes:
+    - Egress
+  egress:
+    # Allow HTTPS egress to Coralogix endpoints
+    - ports:
+        - protocol: TCP
+          port: 443
+    # Allow DNS resolution
+    - ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    # Allow kubelet stats collection
+    - ports:
+        - protocol: TCP
+          port: 10250
+    # Allow scraping application metrics within the namespace
+    - to:
+        - podSelector: {}
+{{- end }}
