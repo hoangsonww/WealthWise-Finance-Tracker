@@ -2,3 +2,7 @@ region        = "us-east-1"
 environment   = "production"
 alarm_email   = "prod-alerts@example.com"
 db_password   = "CHANGE_ME"
+
+# Coralogix — obtain API key from Settings > API Keys > Alerts, Rules & Tags API Key
+coralogix_api_key = "CHANGE_ME"
+coralogix_domain  = "coralogix.us"

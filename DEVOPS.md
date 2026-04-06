@@ -42,6 +42,7 @@ Comprehensive documentation of all DevOps, infrastructure, and operational conce
   - [Production Deployment](#production-deployment)
   - [Rollback Procedures](#rollback-procedures)
 - [Logging & Observability](#logging--observability)
+  - [Coralogix Integration](#coralogix-integration)
 - [Resource Limits & Scaling](#resource-limits--scaling)
 - [Troubleshooting](#troubleshooting)
 - [Operational Runbook](#operational-runbook)
@@ -1370,6 +1371,94 @@ docker compose -f docker-compose.production.yml logs -f mongodb
 # Last N lines
 docker compose -f docker-compose.production.yml logs --tail 100 api
 ```
+
+### Coralogix Integration
+
+WealthWise ships logs, metrics, and traces to **Coralogix** via OpenTelemetry Collector for centralized observability across all deployment targets.
+
+#### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                   OpenTelemetry Collector (DaemonSet)             │
+│                                                                    │
+│  Receivers               Processors            Exporter            │
+│  ┌─────────┐            ┌──────────────┐      ┌───────────────┐  │
+│  │ filelog  │─ logs ────▶│memory_limiter│─────▶│               │  │
+│  │ otlp    │─ traces ──▶│k8sattributes │─────▶│   Coralogix   │  │
+│  │ prom    │─ metrics ──▶│resource      │─────▶│ (OTEL native) │  │
+│  │ kubelet │────────────▶│batch         │─────▶│               │  │
+│  └─────────┘            └──────────────┘      └───────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+#### Configuration by Deployment Target
+
+| Target | Logs | Metrics | Traces | Config Path |
+|--------|------|---------|--------|-------------|
+| **Kubernetes (Helm)** | OTEL filelog receiver | OTEL Prometheus + kubeletstats | OTEL OTLP receiver | `helm/wealthwise/values.yaml` → `coralogix:` |
+| **Kubernetes (Kustomize)** | OTEL filelog receiver | OTEL Prometheus + kubeletstats | OTEL OTLP receiver | `k8s/base/otel-collector-*` |
+| **Docker Compose** | Fluent Bit (fluentd driver) | OTEL docker_stats | OTEL OTLP receiver | `coralogix/` + `docker-compose.production.yml` |
+| **Terraform (AWS)** | Managed via Coralogix provider | Alert rules + dashboards | — | `terraform/modules/coralogix/` |
+
+#### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CX_API_KEY` | Yes | Coralogix Send-Your-Data API key |
+| `CX_DOMAIN` | Yes | Region endpoint: `coralogix.us`, `coralogix.com`, `eu2.coralogix.com`, `coralogix.in`, `coralogix.sg` |
+
+**Never commit `CX_API_KEY`.** Use K8s Secrets, Sealed Secrets, or CI/CD secret injection.
+
+#### Docker Compose Quick Start
+
+```bash
+# Set Coralogix credentials
+export CX_API_KEY="your-send-your-data-key"
+export CX_DOMAIN="coralogix.us"
+
+# Start with observability
+docker compose -f docker-compose.production.yml up -d
+
+# Verify Fluent Bit health
+curl -s http://localhost:2020/api/v1/health
+
+# Verify OTEL Collector health
+curl -s http://localhost:13133/
+```
+
+#### Kubernetes (Helm) Quick Start
+
+```bash
+# Install with Coralogix enabled
+helm upgrade --install wealthwise ./helm/wealthwise \
+  --set coralogix.enabled=true \
+  --set coralogix.apiKey="your-key" \
+  --set coralogix.domain="coralogix.us" \
+  -f helm/wealthwise/values-production.yaml
+
+# Verify OTEL Collector pods
+kubectl get pods -n wealthwise -l app.kubernetes.io/component=observability
+```
+
+#### Terraform (Alerts & Dashboards)
+
+```bash
+cd terraform/environments/production
+
+# Set Coralogix variables
+export TF_VAR_coralogix_api_key="your-alerts-rules-tags-api-key"
+export TF_VAR_coralogix_domain="coralogix.us"
+
+terraform plan
+terraform apply
+```
+
+This provisions 7 alert rules (5xx spikes, error rate, service down, slow API, MongoDB failures, auth brute force, memory pressure), 3 TCO log tiering policies, 4 parsing rule groups, and a 5-section dashboard.
+
+#### Nginx JSON Logging
+
+Production Nginx uses structured JSON logging (`json_combined` format) for automatic parsing in Coralogix — no custom regex needed. Fields include `request_method`, `status`, `request_time`, `upstream_response_time`, `ssl_protocol`, and more.
 
 ---
 

@@ -218,3 +218,47 @@ ingress:
 networkPolicies:
   enabled: true
   mongodbPort: 27017
+
+# ---- Coralogix Observability ----
+
+coralogix:
+  enabled: true
+
+  # Coralogix ingress domain (region-specific)
+  # Options: coralogix.com (EU1), coralogix.us (US1), eu2.coralogix.com (EU2),
+  #          coralogix.in (AP1), coralogix.sg (AP2)
+  domain: "coralogix.us"
+
+  # Coralogix Send-Your-Data API key — stored in a Secret.
+  # Set via --set coralogix.apiKey=xxx or use existingSecret.
+  apiKey: ""
+
+  # Application and subsystem names shown in Coralogix UI
+  applicationName: "wealthwise"
+
+  # OpenTelemetry Collector DaemonSet
+  otelCollector:
+    enabled: true
+
+    image:
+      repository: otel/opentelemetry-collector-contrib
+      tag: "0.96.0"
+      pullPolicy: IfNotPresent
+
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+    # Ports exposed by the collector
+    ports:
+      otlpGrpc: 4317
+      otlpHttp: 4318
+      fluentForward: 8006
+      healthCheck: 13133
+
+    # Scrape interval for Prometheus metrics
+    scrapeInterval: "30s"

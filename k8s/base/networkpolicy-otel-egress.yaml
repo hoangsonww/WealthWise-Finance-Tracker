@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wealthwise-otel-collector-egress
+  namespace: wealthwise
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: wealthwise-otel-collector
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - port: 443
+          protocol: TCP
+    - ports:
+        - port: 10250
+          protocol: TCP
+    - to:
+        - namespaceSelector: {}
+          podSelector: {}
+      ports:
+        - port: 4317
+          protocol: TCP
+        - port: 4318
+          protocol: TCP

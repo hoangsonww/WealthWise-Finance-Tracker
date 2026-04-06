@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    coralogix = {
+      source  = "coralogix/coralogix"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -19,6 +23,11 @@ provider "aws" {
       ManagedBy   = "terraform"
     }
   }
+}
+
+provider "coralogix" {
+  api_key = var.coralogix_api_key
+  domain  = var.coralogix_domain
 }
 
 # --- IAM Roles for ECS ---
@@ -222,4 +231,14 @@ module "monitoring" {
   alarm_email                 = var.alarm_email
   cpu_threshold               = 70
   error_threshold             = 0.5
+}
+
+module "coralogix" {
+  source = "../../modules/coralogix"
+
+  environment         = var.environment
+  coralogix_api_key   = var.coralogix_api_key
+  coralogix_domain    = var.coralogix_domain
+  application_name    = "wealthwise"
+  notification_emails = [var.alarm_email]
 }

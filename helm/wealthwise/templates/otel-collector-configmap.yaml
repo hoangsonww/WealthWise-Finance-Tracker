@@ -1,0 +1,229 @@
+{{- if .Values.coralogix.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wealthwise.fullname" . }}-otel-collector
+  namespace: {{ include "wealthwise.namespace" . }}
+  labels:
+    {{- include "wealthwise.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: observability
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:{{ .Values.coralogix.otelCollector.ports.otlpGrpc }}"
+          http:
+            endpoint: "0.0.0.0:{{ .Values.coralogix.otelCollector.ports.otlpHttp }}"
+
+      filelog:
+        include:
+          - /var/log/pods/{{ include "wealthwise.namespace" . }}_*/*/*.log
+        exclude:
+          - /var/log/pods/{{ include "wealthwise.namespace" . }}_*otel-collector*/*/*.log
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        operators:
+          - type: router
+            id: get-format
+            routes:
+              - output: parser-docker
+                expr: 'body matches "^\\{"'
+              - output: parser-containerd
+                expr: 'body matches "^[^ Z]+Z"'
+          - type: json_parser
+            id: parser-docker
+            output: extract-metadata
+            timestamp:
+              parse_from: attributes.time
+              layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+          - type: regex_parser
+            id: parser-containerd
+            regex: "^(?P<time>[^ Z]+Z) (?P<stream>stdout|stderr) (?P<logtag>[^ ]*) ?(?P<log>.*)$"
+            output: extract-metadata
+            timestamp:
+              parse_from: attributes.time
+              layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+          - type: move
+            id: extract-metadata
+            from: attributes["log.file.path"]
+            to: resource["log.file.path"]
+          - type: regex_parser
+            id: extract-metadata-from-filepath
+            regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/.*$'
+            parse_from: resource["log.file.path"]
+            cache:
+              size: 128
+          - type: move
+            from: attributes.container_name
+            to: resource["k8s.container.name"]
+          - type: move
+            from: attributes.namespace
+            to: resource["k8s.namespace.name"]
+          - type: move
+            from: attributes.pod_name
+            to: resource["k8s.pod.name"]
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: "wealthwise-services"
+              scrape_interval: {{ .Values.coralogix.otelCollector.scrapeInterval }}
+              kubernetes_sd_configs:
+                - role: pod
+                  namespaces:
+                    names:
+                      - {{ include "wealthwise.namespace" . }}
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                  action: keep
+                  regex: "true"
+                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                  action: replace
+                  target_label: __metrics_path__
+                  regex: (.+)
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  action: replace
+                  regex: ([^:]+)(?::\d+)?;(\d+)
+                  replacement: $$1:$$2
+                  target_label: __address__
+                - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                  action: replace
+                  target_label: service
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: replace
+                  target_label: namespace
+
+      k8s_cluster:
+        collection_interval: 30s
+        node_conditions_to_report:
+          - Ready
+          - MemoryPressure
+          - DiskPressure
+        allocatable_types_to_report:
+          - cpu
+          - memory
+
+      kubeletstats:
+        collection_interval: 30s
+        auth_type: serviceAccount
+        endpoint: "https://${env:K8S_NODE_NAME}:10250"
+        insecure_skip_verify: true
+        metric_groups:
+          - node
+          - pod
+          - container
+
+    processors:
+      batch:
+        send_batch_size: 1024
+        timeout: 5s
+
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+
+      k8sattributes:
+        auth_type: "serviceAccount"
+        extract:
+          metadata:
+            - k8s.namespace.name
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.node.name
+            - k8s.container.name
+          labels:
+            - tag_name: app
+              key: app.kubernetes.io/name
+              from: pod
+            - tag_name: component
+              key: app.kubernetes.io/component
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+          - sources:
+              - from: connection
+
+      resource:
+        attributes:
+          - key: cx.application.name
+            value: {{ .Values.coralogix.applicationName }}
+            action: upsert
+          - key: cx.subsystem.name
+            from_attribute: app
+            action: upsert
+          - key: environment
+            value: {{ .Values.config.nodeEnv }}
+            action: upsert
+
+      transform/logs:
+        log_statements:
+          - context: log
+            statements:
+              - set(severity_text, "INFO") where severity_text == ""
+              - set(body, attributes["log"]) where attributes["log"] != nil
+
+    exporters:
+      coralogix:
+        domain: {{ .Values.coralogix.domain | quote }}
+        private_key: "${env:CX_API_KEY}"
+        application_name: {{ .Values.coralogix.applicationName | quote }}
+        subsystem_name: "kubernetes"
+        timeout: 30s
+
+    extensions:
+      health_check:
+        endpoint: "0.0.0.0:{{ .Values.coralogix.otelCollector.ports.healthCheck }}"
+
+    service:
+      extensions:
+        - health_check
+      pipelines:
+        logs:
+          receivers:
+            - filelog
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - transform/logs
+            - batch
+          exporters:
+            - coralogix
+        metrics:
+          receivers:
+            - prometheus
+            - kubeletstats
+            - k8s_cluster
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - coralogix
+        traces:
+          receivers:
+            - otlp
+          processors:
+            - memory_limiter
+            - k8sattributes
+            - resource
+            - batch
+          exporters:
+            - coralogix
+      telemetry:
+        logs:
+          level: warn
+        metrics:
+          address: "0.0.0.0:8888"
+{{- end }}
