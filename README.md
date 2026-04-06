@@ -883,6 +883,7 @@ Reusable modules in `terraform/modules/`:
 | `compute` | ECS Fargate cluster, task definitions, autoscaling |
 | `database` | DocumentDB cluster, security groups, encryption |
 | `monitoring` | CloudWatch dashboards, alarms, SNS notifications |
+| `coralogix` | Coralogix alerts, TCO policies, parsing rules, dashboards |
 | `dns` | Route53 hosted zone, ACM certificate, DNS records |
 | `container-registry` | ECR repositories, lifecycle policies, scanning |
 
@@ -899,6 +900,17 @@ Environments: `terraform/environments/{dev,staging,production}/`
 
 Each provider directory includes IaC templates, deployment scripts, and secret management setup. See the README in each directory for provider-specific instructions.
 
+### Observability (Coralogix)
+
+Centralized logs, metrics, and traces via **Coralogix** + **OpenTelemetry Collector**:
+
+- **Kubernetes**: OTEL Collector DaemonSet (filelog, Prometheus scraping, kubeletstats, OTLP receiver) with Coralogix exporter — deployed via Helm or Kustomize
+- **Docker Compose**: Fluent Bit log shipper + OTEL Collector for container metrics and traces
+- **Terraform**: 7 alert rules, 3 TCO log tiering policies, 4 parsing rule groups, and a 5-section dashboard provisioned via the `coralogix/coralogix` Terraform provider
+- **Nginx**: Structured JSON access logs (`json_combined` format) for automatic parsing
+
+Config: `coralogix/`, `helm/wealthwise/values.yaml` → `coralogix:`, `k8s/base/otel-collector-*`, `terraform/modules/coralogix/`
+
 ### Production Nginx
 
 `nginx/nginx.prod.conf` provides:
@@ -906,6 +918,7 @@ Each provider directory includes IaC templates, deployment scripts, and secret m
 - Security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
 - Rate limiting (10 req/s API, 5 req/s auth endpoints)
 - Static asset caching (`/_next/static/` with immutable Cache-Control)
+- Structured JSON access logging for Coralogix/OTEL ingestion
 - HTTP → HTTPS redirect
 
 ### Utility Scripts
@@ -1050,6 +1063,7 @@ See [`.beads/README.md`](.beads/README.md) and [`.agent-sessions/README.md`](.ag
 | **In-App AI**      | Gemini via Google Generative Language API, Express 4 advisor service |
 | **Agentic AI**     | @anthropic-ai/sdk (Claude), MCP Client, Express 4   |
 | **AI Models**      | Gemini 2.5 Flash by default for `/advisor`, Claude Sonnet 4 for `agentic-ai` |
+| **Observability**  | Coralogix, OpenTelemetry Collector, Fluent Bit        |
 | **Deployment**     | Docker Compose, Nginx reverse proxy                  |
 
 ---

@@ -1378,18 +1378,35 @@ WealthWise ships logs, metrics, and traces to **Coralogix** via OpenTelemetry Co
 
 #### Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                   OpenTelemetry Collector (DaemonSet)             │
-│                                                                    │
-│  Receivers               Processors            Exporter            │
-│  ┌─────────┐            ┌──────────────┐      ┌───────────────┐  │
-│  │ filelog  │─ logs ────▶│memory_limiter│─────▶│               │  │
-│  │ otlp    │─ traces ──▶│k8sattributes │─────▶│   Coralogix   │  │
-│  │ prom    │─ metrics ──▶│resource      │─────▶│ (OTEL native) │  │
-│  │ kubelet │────────────▶│batch         │─────▶│               │  │
-│  └─────────┘            └──────────────┘      └───────────────┘  │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph LR
+    subgraph Receivers
+        FL["filelog<br/><i>pod logs</i>"]
+        OTLP["otlp<br/><i>gRPC + HTTP</i>"]
+        PROM["prometheus<br/><i>pod scraping</i>"]
+        KS["kubeletstats<br/><i>node metrics</i>"]
+    end
+
+    subgraph Processors
+        ML["memory_limiter"]
+        K8S["k8sattributes"]
+        RES["resource<br/><i>cx.application.name<br/>cx.subsystem.name</i>"]
+        BAT["batch"]
+    end
+
+    CX["Coralogix<br/><i>OTEL-native endpoint</i>"]
+
+    FL -- "logs" --> ML
+    OTLP -- "traces" --> ML
+    PROM -- "metrics" --> ML
+    KS -- "metrics" --> ML
+    ML --> K8S --> RES --> BAT --> CX
+
+    style FL fill:#10b981,color:#fff
+    style OTLP fill:#6366f1,color:#fff
+    style PROM fill:#f59e0b,color:#000
+    style KS fill:#f59e0b,color:#000
+    style CX fill:#e11d48,color:#fff
 ```
 
 #### Configuration by Deployment Target
