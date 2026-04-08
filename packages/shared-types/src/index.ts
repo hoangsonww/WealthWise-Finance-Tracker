@@ -71,6 +71,18 @@ export {
   advisorChatResponseSchema,
 } from "./schemas/advisor.schema";
 
+export {
+  assetClassEnum,
+  createHoldingSchema,
+  updateHoldingSchema,
+  priceUpdateItemSchema,
+  refreshPricesSchema,
+  holdingResponseSchema,
+  holdingAllocationSchema,
+  portfolioSummarySchema,
+  holdingListResponseSchema,
+} from "./schemas/holding.schema";
+
 // ---------------------------------------------------------------------------
 // Type exports
 // ---------------------------------------------------------------------------
@@ -120,6 +132,13 @@ export type {
   AdvisorChatModelOutput,
   AdvisorContextStats,
   AdvisorChatResponse,
+  // Holding / Portfolio
+  CreateHoldingInput,
+  UpdateHoldingInput,
+  RefreshPricesInput,
+  HoldingResponse,
+  HoldingAllocation,
+  PortfolioSummary,
   // API wrappers
   ApiResponse,
   PaginatedResponse,
